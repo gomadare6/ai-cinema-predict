@@ -1,0 +1,15 @@
+{
+  "name": "ai-cinema",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI 空いてる映画 予測・おすすめ — 混雑率予測エンジン + 第一版 Web UI",
+  "scripts": {
+    "build:aggregates": "node scripts/build-aggregates.js",
+    "build:ui": "node scripts/build-ui-data.js",
+    "build": "npm run build:aggregates && npm run build:ui",
+    "build:site": "node scripts/build-site.js",
+    "verify:step3": "node scripts/verify-step3.js",
+    "dev": "node scripts/serve.js",
+    "test": "node --test"
+  }
+}

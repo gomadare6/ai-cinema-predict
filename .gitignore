@@ -1,0 +1,16 @@
+# 提出用に組み立てる静的サイト（npm run build:site で再生成）
+/dist/
+
+# 予測用集計データ（npm run build で data/ から再生成。Cloudflare Pages のビルド時にも再生成される）
+/derived/
+
+# Python キャッシュ
+__pycache__/
+*.pyc
+
+# ml/ の生成物（python build_dataset.py / train.py で再生成。本番未接続）
+/ml/derived/
+/ml/model/
+
+# OS / エディタ
+.DS_Store

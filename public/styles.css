@@ -1,0 +1,817 @@
+/* ===========================================================
+   AI 空いてる映画 — スタイル
+   方針: 夜の映画館ロビー × 高級感 × 落ち着いたシネマサービス（Dark Cinema Luxury）
+   紫グロー / ネオン / サイバー感は使わない。アクセントは真鍮の細線＋深緑1色。
+   暗さの階層 背景 #0B111A → セクション #111923 → カード #18222D → hover #202B37。
+   モーションは「操作すると静かに反応する」程度。派手にしない。
+   =========================================================== */
+
+:root {
+  --ink: #0b111a; /* ページ最暗部・ヘッダーのフォールバック地色 */
+  --ink-soft: #202b37;
+  --section: #111923; /* パネル・凡例などセクション面 */
+  --brass: #c9a227; /* 映画館らしい真鍮のアクセント（細線・選択状態のみ、多用しない） */
+  --brass-bright: #e0c35a; /* 暗い面での可視性用（フォーカス枠・基準線など） */
+  --brass-deep: #e0c35a; /* 旧名の互換。暗テーマでは明るい真鍮を指す */
+  --paper: #0b111a; /* 本文の地色（完全な黒は避ける） */
+  --card: #18222d;
+  --card-hover: #202b37;
+  --text: #f5f3ed;
+  --text-muted: #b7b8b5;
+  --text-faint: #8b9088;
+  --line: #303a45;
+  --line-strong: #3c4753;
+
+  --vacant: #16866a; /* 空いている: 落ち着いた深緑（面・バー用） */
+  --vacant-fill: #1f9e7d; /* 暗い面のバー塗り。少し明るく */
+  --vacant-text: #3fbe99; /* 暗い面の緑文字。コントラスト確保 */
+  --vacant-bg: rgba(22, 134, 106, 0.16);
+  --vacant-line: rgba(22, 134, 106, 0.45);
+  --busy-bar: #4a6b63; /* 混雑側は彩度を落とした緑グレー。閾値ではなく「長さ」で表現する */
+
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(0, 0, 0, 0.28);
+  --shadow-lift: 0 2px 8px rgba(0, 0, 0, 0.4), 0 16px 34px rgba(0, 0, 0, 0.34);
+  --maxw: 900px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* 自然な減速。バウンドは使わない */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  color-scheme: dark;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP",
+    "Yu Gothic UI", Meiryo, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  accent-color: var(--vacant-fill); /* input[type=date] などのブラウザ標準UIも配色に寄せる */
+}
+
+/* ブラウザ標準面も配色に合わせる（選択・スクロールバー・フォーカス） */
+::selection {
+  background: rgba(224, 195, 90, 0.28);
+  color: #0b111a;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border: 2px solid var(--paper);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.br-sp {
+  display: none;
+}
+
+/* ---------- ヘッダー ---------- */
+
+.site-header {
+  position: relative;
+  isolation: isolate; /* ::media の z-index をこのヘッダー内に閉じ込める */
+  overflow: hidden; /* blur した画像のにじみを切る */
+  display: flex;
+  align-items: center;
+  min-height: 240px;
+  padding: 32px 0;
+  background: var(--ink); /* 画像が無いときのフォールバック */
+  color: #fff;
+  border-bottom: 2px solid var(--brass); /* 映画館らしい真鍮色の細い線 */
+}
+
+/* ロビー写真レイヤー。軽くぼかし＋ネイビーの半透明オーバーレイで文字を優先。 */
+.site-header__media {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--ink);
+  /* 上は写真を残し、下はページ地色 (#0B111A) へ溶かす。ヒーローだけ浮かせない。 */
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(11, 17, 26, 0.55) 0%,
+      rgba(11, 17, 26, 0.7) 52%,
+      rgba(11, 17, 26, 0.94) 100%
+    ),
+    url("./images/cinema-lobby.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center 42%; /* 天井の円形照明〜売店の帯を残す */
+  filter: blur(4px);
+  transform: scale(1.08); /* ぼかしの縁が透けないよう少し拡大 */
+}
+
+.site-header__inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.site-header__eyebrow {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: #cfd4da;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+}
+
+.site-header__title {
+  margin: 0;
+  /* 見出しだけ明朝／セリフにして、汎用SaaSテンプレ感を避け劇場の看板らしさを出す */
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Hiragino Mincho ProN",
+    "Yu Mincho", YuMincho, Georgia, "Times New Roman", serif;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.012em;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
+}
+
+.site-header__lead {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #e4e7ec;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45);
+}
+
+.main {
+  padding-bottom: 48px;
+}
+
+/* ---------- 条件パネル ---------- */
+
+.panel {
+  background: var(--section);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 16px 6px;
+  margin: -18px 0 24px; /* ヘッダーに少し重ねる */
+  position: relative;
+}
+
+.field {
+  margin-bottom: 18px;
+}
+
+.field__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.field__note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.date-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.date-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  font-size: 16px; /* iOS の自動ズーム回避 */
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #0e1620;
+  color: var(--text);
+  min-height: 46px;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.date-input:hover {
+  border-color: var(--text-faint);
+}
+
+.step-btn {
+  flex: 0 0 auto;
+  width: 46px;
+  min-height: 46px;
+  font-size: 22px;
+  line-height: 1;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 0.14s ease, border-color 0.14s ease, transform 0.1s ease;
+}
+
+.step-btn:hover:not(:disabled) {
+  background: var(--card-hover);
+  border-color: var(--text-faint);
+}
+
+.step-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.step-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  font: inherit;
+  font-size: 14px;
+  padding: 9px 14px;
+  min-height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease,
+    box-shadow 0.14s ease, transform 0.1s ease;
+}
+
+.chip:hover {
+  background: var(--card-hover);
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+
+.chip:active {
+  transform: translateY(1px);
+}
+
+/* 選択状態のアクセントにだけ真鍮を使う（面積は小さく保つ） */
+.chip[aria-pressed="true"] {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: #0b111a;
+  font-weight: 700;
+  box-shadow: 0 1px 8px rgba(201, 162, 39, 0.22);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brass-bright);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---------- 結果ヘッダー ---------- */
+
+.results-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-bottom: 12px;
+}
+
+.results-head__title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.results-head__summary {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ---------- 凡例（予測混雑率の読み方） ---------- */
+
+.legend {
+  background: var(--section);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
+.legend p {
+  margin: 0 0 4px;
+}
+
+.legend p:last-child {
+  margin-bottom: 0;
+}
+
+.legend strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ---------- 状態表示 ---------- */
+
+.status {
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.status--error {
+  border-color: #7a4a3c;
+  background: #241a17;
+  color: var(--text);
+}
+
+.status__title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.status code {
+  background: #0e1620;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: 13px;
+}
+
+/* ---------- カード ---------- */
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 16px 16px;
+  display: grid;
+  gap: 12px;
+}
+
+/* 空いている見込みの上映。左端の帯ではなく、全周の淡い緑ボーダー＋わずかな地色で示す。
+   強い「空き」信号は順位ピル・数値・バー・バッジがすべて緑で担っている。 */
+.card--vacant {
+  border-color: var(--vacant-line);
+  background: linear-gradient(0deg, rgba(22, 134, 106, 0.1), rgba(22, 134, 106, 0.1)),
+    var(--card);
+}
+
+/* 表示中の条件でいちばん空いている見込みの1件。枠線と細い影だけの控えめな強調 */
+.card--top {
+  border-color: var(--vacant-fill);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(22, 134, 106, 0.16);
+}
+
+.card__top-note {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--vacant-text);
+}
+
+/* ホバーできる端末でだけ、カードがわずかに浮く（拡大はしない） */
+@media (hover: hover) and (pointer: fine) {
+  .card {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    background-color: var(--card-hover);
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-lift);
+  }
+
+  .card--vacant:hover {
+    border-color: var(--vacant-fill);
+  }
+
+  .card--top:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.32), 0 14px 34px rgba(22, 134, 106, 0.2);
+  }
+}
+
+/* 上段: 順位 + タイトル + メタ */
+
+.card__head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/* 順位ピル。「N位」と読めるようにして人気ランキングとの誤解を防ぐ */
+.card__rank {
+  flex: 0 0 auto;
+  min-width: 38px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--card-hover);
+  border: 1px solid var(--line);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  margin-top: 3px;
+}
+
+.card__rank-unit {
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 1px;
+}
+
+.card--vacant .card__rank {
+  background: var(--vacant-bg);
+  border-color: var(--vacant-line);
+  color: var(--vacant-text);
+}
+
+.card__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.card__meta {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.card__time {
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.card__sep {
+  color: var(--text-faint);
+  margin: 0 6px;
+}
+
+/* 下段: 予測混雑率 */
+
+.gauge {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.gauge__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gauge__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.gauge__value {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.card--vacant .gauge__value {
+  color: var(--vacant-text);
+}
+
+.gauge__unit {
+  font-size: 16px;
+  font-weight: 700;
+  margin-left: 1px;
+}
+
+.gauge__track {
+  position: relative;
+  margin-top: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #242f3b;
+  overflow: hidden;
+}
+
+/* 「空いている可能性が高い」の境目 (10%) の目印。
+   新しい段階を作るものではなく、既存の判定ラインを見えるようにするだけ。 */
+.gauge__track::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--brass-bright);
+  opacity: 0.85;
+}
+
+.gauge__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--busy-bar);
+  min-width: 3px;
+  transform-origin: left center; /* 表示時に 0 -> 予測値まで伸ばすため */
+}
+
+.card--vacant .gauge__fill {
+  background: var(--vacant-fill);
+}
+
+/* バッジ類 */
+
+.card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.badge {
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  max-width: 100%;
+  overflow-wrap: anywhere; /* 狭い画面でもカードから溢れさせない */
+}
+
+.badge--vacant {
+  background: var(--vacant-bg);
+  border-color: var(--vacant-line);
+  color: var(--vacant-text);
+  font-weight: 700;
+}
+
+/* 信頼度: 実績あり */
+.badge--actual {
+  background: var(--card-hover);
+  border-color: var(--line);
+  color: var(--text-muted);
+}
+
+/* 信頼度: フォールバック。点線 + 淡色で「実績あり」と混同させない */
+.badge--fallback {
+  background: rgba(201, 162, 39, 0.1);
+  border-style: dashed;
+  border-color: rgba(201, 162, 39, 0.45);
+  color: var(--brass-bright);
+}
+
+/* ---------- フッター ---------- */
+
+.site-footer {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-strong);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.site-footer p {
+  margin: 0 0 6px;
+}
+
+.site-footer__detail {
+  color: var(--text-faint);
+}
+
+/* ---------- レスポンシブ ---------- */
+
+@media (max-width: 480px) {
+  .br-sp {
+    display: inline;
+  }
+
+  .site-header {
+    min-height: 200px;
+    padding: 24px 0;
+  }
+
+  .site-header__media {
+    filter: blur(3px); /* 小さい画面ではぼかしを弱めて何の写真か分かるように */
+    background-position: center 45%;
+  }
+
+  .site-header__title {
+    font-size: 22px;
+  }
+
+  .gauge__value {
+    font-size: 27px;
+  }
+
+  .card__title {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 700px) {
+  .site-header {
+    min-height: 360px;
+    padding: 40px 0;
+  }
+
+  .site-header__title {
+    font-size: 32px;
+  }
+
+  .panel {
+    display: grid;
+    grid-template-columns: minmax(240px, 300px) 1fr;
+    grid-template-areas:
+      "date  band"
+      "date  sort";
+    column-gap: 28px;
+    padding: 22px 22px 8px;
+  }
+
+  .field--date {
+    grid-area: date;
+  }
+
+  .field--band {
+    grid-area: band;
+  }
+
+  .field--sort {
+    grid-area: sort;
+  }
+
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- モーション ---------- */
+/*
+   ねらい:
+   - 主役 = 予測混雑率バーが 0% から予測値まで静かに伸びる（この作品の価値の可視化）
+   - 補助 = 初回の淡い立ち上がり / フィルター変更時のカード再表示 / 操作の手応え
+   すべて transform・opacity のみ。幅や位置は動かさない（バーは scaleX）。
+   prefers-reduced-motion では下のリセットで即時表示になる（意味は保持）。
+*/
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes gauge-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes hero-media-in {
+  from {
+    opacity: 0;
+    transform: scale(1.13);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+/* リスト内の位置で少しだけ時間差をつける（カード自身とバーが引き継ぐ） */
+.cards > li {
+  --stagger: 0ms;
+}
+.cards > li:nth-child(2) {
+  --stagger: 40ms;
+}
+.cards > li:nth-child(3) {
+  --stagger: 80ms;
+}
+.cards > li:nth-child(4) {
+  --stagger: 120ms;
+}
+.cards > li:nth-child(5) {
+  --stagger: 160ms;
+}
+.cards > li:nth-child(6) {
+  --stagger: 200ms;
+}
+.cards > li:nth-child(n + 7) {
+  --stagger: 240ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* 初回のみ: ヘッダー→条件→凡例→結果見出し が軽く立ち上がる */
+  .site-header {
+    animation: rise-in 0.38s var(--ease-out) both;
+  }
+  /* ロビー写真はごく控えめに fade-in + わずかに寄る（静止画扱い） */
+  .site-header__media {
+    animation: hero-media-in 0.6s var(--ease-out) both;
+  }
+  .panel {
+    animation: rise-in 0.38s var(--ease-out) 0.06s both;
+  }
+  .results-head {
+    animation: rise-in 0.38s var(--ease-out) 0.1s both;
+  }
+  .legend {
+    animation: rise-in 0.38s var(--ease-out) 0.14s both;
+  }
+
+  /* 再描画のたびに走る = フィルター/日付/並び替え変更時の自然な切り替え */
+  .card {
+    animation: card-in 0.32s var(--ease-out) both;
+    animation-delay: var(--stagger);
+  }
+
+  /* 主役: 予測混雑率バー。カードが収まった直後に 0 -> 予測値へ */
+  .gauge__fill {
+    animation: gauge-grow 0.5s var(--ease-out) both;
+    animation-delay: calc(var(--stagger) + 90ms);
+  }
+}
+
+/* 動きを減らす設定では、動かさず即座に最終状態を見せる（意味・状態は保持） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

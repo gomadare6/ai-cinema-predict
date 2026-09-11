@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b111a" />
+    <title>AI 空いてる映画</title>
+    <meta
+      name="description"
+      content="過去の上映実績から混雑率を予測し、空いている上映を見つけるためのサービスです。"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <!-- シネシティザートのロビー写真（背景）。装飾のため支援技術からは隠す。
+           画像が無い場合はネイビー地にフォールバックする。 -->
+      <div class="site-header__media" aria-hidden="true"></div>
+      <div class="wrap site-header__inner">
+        <p class="site-header__eyebrow">シネシティザート</p>
+        <h1 class="site-header__title">AI 空いてる映画</h1>
+        <p class="site-header__lead">
+          過去の上映実績から混雑率を予測して、<br class="br-sp" />ゆったり観られる回を探します。
+        </p>
+      </div>
+    </header>
+
+    <main class="wrap main">
+      <!-- 検索条件 -->
+      <section class="panel" aria-labelledby="filters-heading">
+        <h2 id="filters-heading" class="sr-only">上映を探す条件</h2>
+
+        <div class="field field--date">
+          <label class="field__label" for="date-input">日付</label>
+          <div class="date-row">
+            <button type="button" class="step-btn" id="prev-day" aria-label="前の日">
+              <span aria-hidden="true">‹</span>
+            </button>
+            <input class="date-input" type="date" id="date-input" />
+            <button type="button" class="step-btn" id="next-day" aria-label="次の日">
+              <span aria-hidden="true">›</span>
+            </button>
+          </div>
+          <p class="field__note" id="date-note"></p>
+        </div>
+
+        <div class="field field--band">
+          <span class="field__label" id="band-label">時間帯</span>
+          <div class="chips" role="group" aria-labelledby="band-label" id="band-chips"></div>
+        </div>
+
+        <div class="field field--sort">
+          <span class="field__label" id="sort-label">並び順</span>
+          <div class="chips" role="group" aria-labelledby="sort-label" id="sort-chips"></div>
+        </div>
+      </section>
+
+      <!-- 結果 -->
+      <section aria-labelledby="results-heading">
+        <div class="results-head">
+          <h2 id="results-heading" class="results-head__title">上映一覧（空いている順）</h2>
+          <p class="results-head__summary" id="summary" aria-live="polite"></p>
+        </div>
+
+        <!-- 予測混雑率の読み方。カードに繰り返さず、一覧の直上に一度だけ置く -->
+        <div class="legend">
+          <p>
+            <strong>予測混雑率</strong>は、過去の同じ作品・スクリーンの上映実績から推定した
+            「席の埋まり具合」の予測です。<strong>実際の空席数ではありません。</strong>
+          </p>
+          <p>
+            バーの目印は 10%。これより低い上映に「空いている可能性が高い」と表示します。
+            番号は<strong>予測混雑率の低い順</strong>の順位で、作品の人気順ではありません。
+          </p>
+          <p>
+            数値は小数第1位に丸めています（10.0% と表示される上映が 10% 未満の場合があります）。
+          </p>
+        </div>
+
+        <div id="status" class="status" hidden></div>
+        <ul class="cards" id="cards"></ul>
+      </section>
+
+      <footer class="site-footer">
+        <p>
+          <strong>表示している混雑率は予測値です。</strong>
+          実際の空席情報・販売状況ではありません。
+        </p>
+        <p class="site-footer__detail" id="footer-detail"></p>
+      </footer>
+    </main>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
