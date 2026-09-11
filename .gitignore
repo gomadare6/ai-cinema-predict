@@ -14,3 +14,7 @@ __pycache__/
 
 # OS / エディタ
 .DS_Store
+
+# npx wrangler 実行時のローカル状態・キャッシュ（依存パッケージは追加していない）
+/node_modules/
+/.wrangler/

@@ -1,0 +1,9 @@
+{
+  // Cloudflare Workers 静的アセット配信の設定（Workerスクリプトなし・dist/ をそのまま公開）
+  // npm run build && npm run build:site で dist/ を生成 → npx wrangler deploy で公開
+  "name": "ai-cinema-predict",
+  "compatibility_date": "2026-09-11",
+  "assets": {
+    "directory": "./dist"
+  }
+}
