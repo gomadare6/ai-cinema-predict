@@ -86,11 +86,12 @@ cd ml && python build_dataset.py && python train.py && python evaluate.py && pyt
 
 ```
 data/        元CSV（読み取り専用・未変更）
-derived/     予測用集計 + ui-showings.json（npm run build で生成）
-src/         予測エンジン（config / csv / dataset / buildAggregates / predictor）
-scripts/     build-aggregates / build-ui-data / build-site / serve / verify-step3
+src/         予測エンジン（本番処理: config / csv / dataset / buildAggregates / predictor）
 public/      Web UI（index.html / styles.css / js/）
-test/        Node テスト 87 件
+scripts/     build・検証の補助スクリプト（build-aggregates / build-ui-data / build-site / serve / verify-step3）
+test/        Node テスト
 ml/          ML 比較検証（本番未接続）
-dist/        提出用静的サイト（build:site で生成・gitignore）
+derived/     予測用集計 + ui-showings.json（npm run build で自動生成・gitignore）
+dist/        提出用静的サイト（build:site で自動生成・gitignore）
+docs/        コンテスト提出資料・参考資料（座席表写真 / 作品説明.docx / データ辞書.xlsx / 劇場サイトの参照リンク）
 ```
