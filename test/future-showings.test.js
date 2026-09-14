@@ -81,12 +81,14 @@ test('テスト3: 未来上映にも既存の予測器でそのまま予測値�
 });
 
 test('テスト4: work×screen 実績がある未来上映 → 作品×スクリーン平均が使われる', () => {
-  // F00001 = M0004 (劇場版『チェンソーマン レゼ篇』) × スクリーン1。学習期間に実績あり。
+  // 合成データ: M0004 (劇場版『チェンソーマン レゼ篇』) × スクリーン1 は学習期間に実績があるため、
+  // 未来上映がこの組み合わせを持つ場合を想定して検証する
+  // (data/future_showings.csv の実データは実在の新作のみで movies.csv と重複しないため、ここでは直接 predict() を検証する)。
   const wsEntry = aggregates.workScreen.find((e) => e.movieId === 'M0004' && e.screenId === '1');
   assert.ok(wsEntry, '前提: M0004×screen1 の学習実績があること');
 
   const result = predictor.predict({
-    showingId: 'F00001',
+    showingId: 'TEST-WORK-SCREEN-HIT',
     movieId: 'M0004',
     movieTitle: 'テスト用',
     screenId: '1',
@@ -100,18 +102,20 @@ test('テスト4: work×screen 実績がある未来上映 → 作品×スクリ
 });
 
 test('テスト5: 作品IDが過去データ(movies.csv)に存在しない未来上映 → スクリーン平均にフォールバックし、壊れない', () => {
-  // F00003 = 未公開の新作 (M9001)。movies.csv に存在しない movieId。
-  const hasWorkScreen = aggregates.workScreen.some((e) => e.movieId === 'M9001');
-  assert.equal(hasWorkScreen, false, '前提: M9001 は学習期間の実績が無いこと');
+  // 合成データ: 学習期間に実績の無い架空の movieId ('MTEST9999') で、
+  // movies.csv に存在しない未来の作品でも壊れないことを検証する
+  // (data/future_showings.csv の実データも同様に movies.csv 非依存で動作する。テスト2/3で確認済み)。
+  const hasWorkScreen = aggregates.workScreen.some((e) => e.movieId === 'MTEST9999');
+  assert.equal(hasWorkScreen, false, '前提: MTEST9999 は学習期間の実績が無いこと');
 
   const scEntry = aggregates.screen.find((e) => e.screenId === '1');
   assert.ok(scEntry);
 
   assert.doesNotThrow(() => {
     const result = predictor.predict({
-      showingId: 'F00003',
-      movieId: 'M9001',
-      movieTitle: '(未公開)新作アニメーション',
+      showingId: 'TEST-UNKNOWN-MOVIE',
+      movieId: 'MTEST9999',
+      movieTitle: '(合成テスト用)未知の作品',
       screenId: '1',
       showDateTime: '2026-10-10 19:00',
       seatCapacity: 320,
@@ -241,10 +245,10 @@ test('テスト11: 未来上映にも historyCount / confidence / predictionBasi
   }
 });
 
-test('テスト12: F00001 (work×screen実績あり) は confidence が high、F00003 (未知の作品) は screen 段で high にならない', () => {
-  // F00001 = M0004×screen1、学習実績60回 (>= CONFIDENCE_HIGH_MIN_COUNT=20) → high
+test('テスト12: work×screen実績ありの未来上映は confidence が high、未知の作品は screen 段で high にならない', () => {
+  // M0004×screen1 は学習実績60回 (>= CONFIDENCE_HIGH_MIN_COUNT=20) → high
   const r1 = predictor.predict({
-    showingId: 'F00001',
+    showingId: 'TEST-CONF-HIGH',
     movieId: 'M0004',
     screenId: '1',
     showDateTime: '2026-10-10 09:30',
@@ -252,11 +256,11 @@ test('テスト12: F00001 (work×screen実績あり) は confidence が high、F
   assert.equal(r1.predictionSource, SOURCE_WORK_SCREEN);
   assert.equal(r1.confidence, CONFIDENCE_HIGH);
 
-  // F00003 = M9001 (movies.csvに無い未知の作品) × screen1 → screen 段にフォールバック。
+  // movies.csvに無い未知の作品 × screen1 → screen 段にフォールバック。
   // screen 段は件数がいくら多くても high にはしない (作品への特化度が低いため)。
   const r2 = predictor.predict({
-    showingId: 'F00003',
-    movieId: 'M9001',
+    showingId: 'TEST-CONF-NOT-HIGH',
+    movieId: 'MTEST9999',
     screenId: '1',
     showDateTime: '2026-10-10 19:00',
   });
@@ -269,5 +273,39 @@ test('テスト10: 上映IDが schedules.csv (過去実績) と重複してい�
   const historicalIds = new Set(showings.map((s) => s.showingId));
   for (const f of future) {
     assert.equal(historicalIds.has(f.showingId), false, `${f.showingId} は実績データと重複していない`);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// data/future_showings.csv (シネシティザート公式サイトの実上映予定) のデータ整合性
+// ---------------------------------------------------------------------------
+test('テスト13: future_showings.csv の上映ID・作品IDに重複がない', () => {
+  const future = loadFutureShowings();
+  assert.ok(future.length > 0);
+
+  const showingIds = future.map((f) => f.showingId);
+  assert.equal(new Set(showingIds).size, showingIds.length, '上映IDに重複がない');
+
+  // 同一日・同一スクリーン・同一開始時刻の重複が無いこと (二重登録の検知)
+  const slotKeys = future.map((f) => `${f.screenId}|${f.showDate}|${f.startTime}`);
+  assert.equal(new Set(slotKeys).size, slotKeys.length, '同一スクリーン・同時刻の重複上映が無い');
+});
+
+test('テスト14: future_showings.csv のスクリーンIDはすべて screens.csv に実在する (推測禁止の確認)', () => {
+  const { screens } = loadShowings();
+  const future = loadFutureShowings(undefined, screens);
+  assert.ok(future.length > 0);
+  for (const f of future) {
+    assert.ok(screens.has(f.screenId), `screenId ${f.screenId} が screens.csv に存在する`);
+  }
+});
+
+test('テスト15: future_showings.csv の日付・時刻形式が正しく、終了時刻が開始時刻より後', () => {
+  const future = loadFutureShowings();
+  for (const f of future) {
+    assert.match(f.showDate, /^\d{4}-\d{2}-\d{2}$/);
+    assert.match(f.startTime, /^\d{2}:\d{2}$/);
+    assert.match(f.endTime, /^\d{2}:\d{2}$/);
+    assert.ok(f.endTime > f.startTime, `${f.showingId}: 終了時刻(${f.endTime})が開始時刻(${f.startTime})より後`);
   }
 });
