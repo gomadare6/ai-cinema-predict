@@ -7,9 +7,12 @@
  * 元 CSV は絶対に書き換えない。ここでの加工結果はメモリ上のみ。
  */
 
+const fs = require('fs');
 const path = require('path');
 const { readCsv, forEachCsvRow } = require('./csv');
 const { DATA_DIR, TRAINING_START, TRAINING_END, VALIDATION_START, VALIDATION_END } = require('./config');
+
+const FUTURE_SHOWINGS_FILE = 'future_showings.csv';
 
 /** screens.csv → Map<screenId(string), { screenId, screenName, seatCapacity(number) }> */
 function loadScreens(dataDir = DATA_DIR) {
@@ -67,6 +70,65 @@ function countSoldSeatsByShowing(dataDir = DATA_DIR) {
     counts.set(sid, (counts.get(sid) || 0) + 1);
   });
   return counts;
+}
+
+/**
+ * 未来の上映予定を data/future_showings.csv (存在すれば) から読み込む。
+ *
+ * schedules.csv と異なり、作品名は movies.csv を参照せずこのファイル自身の値を使う
+ * (movies.csv にまだ無い未来の作品IDでも読み込みが失敗しないようにするため)。
+ * 販売実績 (ticket_sales.csv) は一切参照しない — 未来上映に実績は存在しない。
+ * 座席数は既存の schedules.csv と同じく screens.csv から解決する (二重管理・不整合を避ける)。
+ * ファイルが無い場合は空配列を返す (この機能を使わないプロジェクト状態でも壊れない)。
+ *
+ * @param {string} dataDir
+ * @param {Map} [screens] loadScreens() の戻り値。省略時は自分で読み込む。
+ * @returns {Array<object>} loadShowings().showings と同じ形 (+ endTime, isFuture:true)
+ */
+function loadFutureShowings(dataDir = DATA_DIR, screens) {
+  const filePath = path.join(dataDir, FUTURE_SHOWINGS_FILE);
+  if (!fs.existsSync(filePath)) return [];
+
+  const screenMap = screens || loadScreens(dataDir);
+  const { rows } = readCsv(filePath);
+  const result = [];
+
+  for (const r of rows) {
+    const showingId = r['上映ID'];
+    const screenId = r['スクリーンID'];
+    const screen = screenMap.get(screenId);
+    if (!screen) {
+      // 未知のスクリーンIDは座席数が分からず予測できないため、その行だけ除外する
+      // (アプリ全体は止めない)。
+      console.warn(
+        `future_showings.csv: 未知のスクリーンID "${screenId}" (${showingId}) の行をスキップしました`
+      );
+      continue;
+    }
+
+    const showDate = r['上映日'];
+    const startTime = r['開始時刻'];
+
+    result.push({
+      showingId,
+      movieId: r['作品ID'],
+      movieTitle: r['作品名'],
+      genre: undefined,
+      screenId,
+      seatCapacity: screen.seatCapacity,
+      showDate,
+      startTime,
+      endTime: r['終了時刻'],
+      showDateTime: `${showDate} ${startTime}`,
+      soldSeats: null,
+      actualOccupancyPct: null,
+      inTrainingWindow: false,
+      inValidationWindow: false,
+      isFuture: true,
+    });
+  }
+
+  return result;
 }
 
 function inWindow(date, start, end) {
@@ -127,5 +189,6 @@ module.exports = {
   loadSchedules,
   countSoldSeatsByShowing,
   loadShowings,
+  loadFutureShowings,
   inWindow,
 };

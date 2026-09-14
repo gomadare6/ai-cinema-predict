@@ -38,4 +38,15 @@ module.exports = {
   SOURCE_WORK_SCREEN: 'work_screen',
   SOURCE_SCREEN: 'screen',
   SOURCE_GLOBAL: 'global',
+
+  // 説明可能性の追加項目 (STEP 9): 予測値がどれだけの過去実績に基づくかを示す confidence。
+  // 「予測精度」ではなく「過去実績の量に基づく参考度」であることに注意 (UI文言でも明示する)。
+  // work_screen 段: 件数がこの数値以上なら high、それ未満 CONFIDENCE_MEDIUM_MIN_COUNT 以上なら medium、
+  // それ未満なら low。screen 段は (件数に関わらず) 作品への特化度が低いため high にはせず medium/low に留める。
+  // global 段は常に low (どの作品・スクリーンにも特化していないため)。
+  CONFIDENCE_HIGH_MIN_COUNT: 20,
+  CONFIDENCE_MEDIUM_MIN_COUNT: 5,
+  CONFIDENCE_HIGH: 'high',
+  CONFIDENCE_MEDIUM: 'medium',
+  CONFIDENCE_LOW: 'low',
 };

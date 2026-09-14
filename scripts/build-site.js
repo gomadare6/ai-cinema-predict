@@ -47,6 +47,9 @@ function main() {
   // Node からの module 判定用の public/package.json は本番サイトに不要
   fs.rmSync(path.join(DIST, 'package.json'), { force: true });
 
+  // 画像フォルダの運用メモ (public/images/README.md) も本番サイトに不要
+  fs.rmSync(path.join(DIST, 'images', 'README.md'), { force: true });
+
   const files = [];
   (function walk(dir, base = '') {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {

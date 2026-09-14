@@ -625,6 +625,21 @@ body {
   color: var(--brass-bright);
 }
 
+/* 未来の上映予定 (data/future_showings.csv 由来)。過去実績日の表示と混同させない */
+.badge--future {
+  background: var(--section);
+  border-color: var(--line-strong);
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+/* 予測の根拠 + 参考度 (STEP 9)。バッジと同じトーンの控えめな補足テキスト */
+.card__basis {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
 /* ---------- フッター ---------- */
 
 .site-footer {

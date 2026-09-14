@@ -110,6 +110,9 @@ const vacantActual = {
   trainingShowCount: 42,
   confidenceLabel: '過去の上映実績あり',
   confidenceKind: 'actual',
+  historyCount: 42,
+  confidence: '高',
+  predictionBasisDetail: '作品×スクリーンの過去42回を参考',
 };
 
 const busyFallback = {
@@ -126,6 +129,9 @@ const busyFallback = {
   trainingShowCount: 1638,
   confidenceLabel: '参考値：スクリーンの過去実績から予測',
   confidenceKind: 'fallback',
+  historyCount: 1638,
+  confidence: '中',
+  predictionBasisDetail: 'スクリーンの過去1638回を参考',
 };
 
 // ---------- テスト ----------
@@ -195,8 +201,10 @@ test('render: フォールバックは「実績あり」と誤解される表示
   assert.doesNotMatch(badge.textContent, /実績あり/);
   assert.equal(card.find('badge--actual'), null, '実績ありバッジは付かない');
 
-  // 学習上映数(1638)がフォールバックカードに回数として出ていないこと
-  assert.doesNotMatch(card.textContent, /1638/);
+  // 学習上映数(1638) は「実績あり」バッジに回数として出ない
+  // (= badge--actual と誤解される表示にならない)。
+  // STEP 9 で追加した card__basis (根拠・参考度) には、意図的に件数を表示する。
+  assert.doesNotMatch(badge.textContent, /1638/);
 });
 
 test('render: 実績ありは回数つきで表示される', () => {
@@ -217,6 +225,36 @@ test('render: 内部値 (work_screen / screen / global) が画面に出ない', 
 
   for (const internal of ['work_screen', 'screen_avg', 'global', 'isVacant', 'predictionSource']) {
     assert.doesNotMatch(text, new RegExp(internal), `内部値「${internal}」を表示しない`);
+  }
+});
+
+test('render: 予測の根拠 (card__basis) に predictionBasisDetail と confidence が出る', () => {
+  const list = new FakeNode('ul');
+  renderCards(list, [vacantActual, busyFallback]);
+  const [actualCard, fallbackCard] = list.children;
+
+  const actualBasis = actualCard.find('card__basis');
+  assert.ok(actualBasis, '根拠テキストが付く');
+  assert.match(actualBasis.textContent, /作品×スクリーンの過去42回を参考/);
+  assert.match(actualBasis.textContent, /参考度: 高/);
+
+  const fallbackBasis = fallbackCard.find('card__basis');
+  assert.ok(fallbackBasis);
+  assert.match(fallbackBasis.textContent, /スクリーンの過去1638回を参考/);
+  assert.match(fallbackBasis.textContent, /参考度: 中/);
+});
+
+test('render: 参考度は「予測精度」を示す表現と誤解されないよう説明が付いている', () => {
+  const list = new FakeNode('ul');
+  renderCards(list, [vacantActual]);
+  const basis = list.children[0].find('card__basis');
+
+  assert.match(basis.title, /過去実績の件数に基づく参考情報/);
+  assert.match(basis.title, /予測の精度そのものを示すものではありません/);
+
+  // 精度・信頼度を断定するような表現を使っていない
+  for (const forbidden of ['高精度', '精度が高い', '信頼度が高い', '正確', '確実', '保証']) {
+    assert.doesNotMatch(list.textContent, new RegExp(forbidden), `「${forbidden}」を使わない`);
   }
 });
 

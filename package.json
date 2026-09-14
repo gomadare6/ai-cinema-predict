@@ -9,6 +9,7 @@
     "build": "npm run build:aggregates && npm run build:ui",
     "build:site": "node scripts/build-site.js",
     "verify:step3": "node scripts/verify-step3.js",
+    "verify:candidates": "node scripts/evaluate-future-candidates.js",
     "dev": "node scripts/serve.js",
     "test": "node --test"
   }

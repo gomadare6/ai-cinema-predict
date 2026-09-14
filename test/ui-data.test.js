@@ -12,7 +12,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 
-const { loadShowings } = require('../src/dataset');
+const { loadShowings, loadFutureShowings } = require('../src/dataset');
 const { loadAggregates } = require('../src/buildAggregates');
 const { createPredictor } = require('../src/predictor');
 const { DERIVED_DIR, VACANCY_THRESHOLD_PCT } = require('../src/config');
@@ -26,7 +26,9 @@ test('UI配信データが存在する (npm run build:ui)', { skip: !available &
 
 if (available) {
   const payload = JSON.parse(fs.readFileSync(UI_JSON, 'utf8'));
-  const { showings } = loadShowings();
+  const { showings, screens } = loadShowings();
+  const futureShowings = loadFutureShowings(undefined, screens);
+  const allShowings = [...showings, ...futureShowings];
   const predictor = createPredictor(loadAggregates(DERIVED_DIR));
 
   const COL = {
@@ -41,16 +43,18 @@ if (available) {
     trainingShowCount: 8,
     isVacant: 9,
     vacancyRank: 10,
+    isFuture: 11,
+    confidenceCode: 12,
   };
+  const byId = new Map(allShowings.map((s) => [s.showingId, s]));
 
-  test('UIデータ: 全上映が含まれ、日付でもれなく分割されている', () => {
+  test('UIデータ: 全上映(実績+未来予定)が含まれ、日付でもれなく分割されている', () => {
     const total = Object.values(payload.days).reduce((a, rows) => a + rows.length, 0);
-    assert.equal(total, showings.length);
+    assert.equal(total, allShowings.length);
     assert.equal(payload.meta.dates.length, Object.keys(payload.days).length);
   });
 
   test('UIデータ: 予測値・isVacant が STEP 5 predictor の出力と一致する', () => {
-    const byId = new Map(showings.map((s) => [s.showingId, s]));
     let checked = 0;
 
     for (const rows of Object.values(payload.days)) {
@@ -76,7 +80,39 @@ if (available) {
         checked++;
       }
     }
-    assert.equal(checked, showings.length);
+    assert.equal(checked, allShowings.length);
+  });
+
+  test('UIデータ: isFuture フラグが未来上映のみ 1 になっている', () => {
+    const futureIds = new Set(futureShowings.map((s) => s.showingId));
+    for (const rows of Object.values(payload.days)) {
+      for (const row of rows) {
+        const expected = futureIds.has(row[COL.showingId]) ? 1 : 0;
+        assert.equal(row[COL.isFuture], expected, `${row[COL.showingId]} の isFuture`);
+      }
+    }
+  });
+
+  test('UIデータ: confidenceCode が predictor の confidence と一致する (STEP 9)', () => {
+    const CONFIDENCE_TO_CODE = { high: 'h', medium: 'm', low: 'l' };
+    let checked = 0;
+    for (const rows of Object.values(payload.days)) {
+      for (const row of rows) {
+        const s = byId.get(row[COL.showingId]);
+        const p = predictor.predict({
+          showingId: s.showingId,
+          movieId: s.movieId,
+          movieTitle: s.movieTitle,
+          screenId: s.screenId,
+          showDateTime: s.showDateTime,
+          seatCapacity: s.seatCapacity,
+        });
+        assert.equal(row[COL.confidenceCode], CONFIDENCE_TO_CODE[p.confidence]);
+        assert.ok(['h', 'm', 'l'].includes(row[COL.confidenceCode]));
+        checked++;
+      }
+    }
+    assert.equal(checked, allShowings.length);
   });
 
   test('UIデータ: 各日の vacancyRank が 1..n の連番になっている', () => {

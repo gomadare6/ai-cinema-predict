@@ -16,7 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { loadShowings, loadSchedules } = require('../src/dataset');
+const { loadShowings, loadSchedules, loadFutureShowings } = require('../src/dataset');
 const { loadAggregates } = require('../src/buildAggregates');
 const { createPredictor } = require('../src/predictor');
 const {
@@ -27,6 +27,9 @@ const {
   SOURCE_WORK_SCREEN,
   SOURCE_SCREEN,
   SOURCE_GLOBAL,
+  CONFIDENCE_HIGH,
+  CONFIDENCE_MEDIUM,
+  CONFIDENCE_LOW,
 } = require('../src/config');
 
 // JSON を小さく保つための source コード (UI 側で日本語文言に変換する)
@@ -34,6 +37,13 @@ const SOURCE_CODE = {
   [SOURCE_WORK_SCREEN]: 'w',
   [SOURCE_SCREEN]: 's',
   [SOURCE_GLOBAL]: 'g',
+};
+
+// confidence も同様に1文字コードにする (STEP 9: 説明可能性の追加項目)
+const CONFIDENCE_CODE = {
+  [CONFIDENCE_HIGH]: 'h',
+  [CONFIDENCE_MEDIUM]: 'm',
+  [CONFIDENCE_LOW]: 'l',
 };
 
 function main() {
@@ -52,9 +62,27 @@ function main() {
 
   const { showings, screens } = loadShowings();
 
+  // 未来の上映予定 (data/future_showings.csv があれば)。販売実績・学習集計には一切使わない。
+  // 既存の集計 (aggregates) はここより前に確定済みなので、未来上映を混ぜてもリークしない。
+  const futureShowings = loadFutureShowings(undefined, screens);
+
+  // 上映IDが schedules.csv と衝突していないかを確認 (衝突するとランキング・表示が壊れるため)
+  const historicalIds = new Set(showings.map((s) => s.showingId));
+  for (const f of futureShowings) {
+    if (historicalIds.has(f.showingId)) {
+      throw new Error(
+        `future_showings.csv: showingId "${f.showingId}" は data/schedules.csv と重複しています`
+      );
+    }
+  }
+
+  const allShowings = [...showings, ...futureShowings];
+  const isFutureById = new Map(allShowings.map((s) => [s.showingId, !!s.isFuture]));
+
   // 終了時刻は表示用にのみ使う (loadShowings は予測に必要な項目しか持たないため
-  // schedules.csv から直接引く)
+  // schedules.csv から直接引く)。future_showings.csv 分は自身の値をそのまま使う。
   const endTimeById = new Map(loadSchedules().map((s) => [s.showingId, s.endTime]));
+  for (const f of futureShowings) endTimeById.set(f.showingId, f.endTime);
 
   // 作品名は重複が多いので辞書化してサイズを抑える
   const titleIndex = new Map();
@@ -67,9 +95,9 @@ function main() {
     return titleIndex.get(title);
   };
 
-  // 上映日ごとにまとめる
+  // 上映日ごとにまとめる (実績上映 + 未来上映)
   const byDate = new Map();
-  for (const s of showings) {
+  for (const s of allShowings) {
     if (!byDate.has(s.showDate)) byDate.set(s.showDate, []);
     byDate.get(s.showDate).push(s);
   }
@@ -104,6 +132,8 @@ function main() {
       p.trainingShowCount,
       p.isVacant ? 1 : 0,
       p.vacancyRank,
+      isFutureById.get(p.showingId) ? 1 : 0,
+      CONFIDENCE_CODE[p.confidence],
     ]);
   }
 
@@ -129,10 +159,13 @@ function main() {
         'trainingShowCount',
         'isVacant',
         'vacancyRank',
+        'isFuture',
+        'confidenceCode',
       ],
       dates: [...byDate.keys()].sort(),
       screens: screenInfo,
       showingCount: showings.length,
+      futureShowingCount: futureShowings.length,
     },
     titles,
     days,
@@ -150,7 +183,7 @@ function main() {
   console.log('=== UI 配信データ生成 ===');
   console.log(`予測エンジン    : src/predictor.js (STEP 5) / 集計は derived/ を使用`);
   console.log(`学習期間        : ${TRAINING_START} 〜 ${TRAINING_END}`);
-  console.log(`上映数          : ${showings.length}`);
+  console.log(`上映数          : ${allShowings.length} (実績 ${showings.length} + 未来予定 ${futureShowings.length})`);
   console.log(`日付数          : ${payload.meta.dates.length} (${payload.meta.dates[0]} 〜 ${payload.meta.dates.at(-1)})`);
   console.log(`作品名の種類    : ${titles.length}`);
   console.log(`空いている見込み: ${vacantCount} 上映 (予測混雑率 < ${VACANCY_THRESHOLD_PCT}%)`);

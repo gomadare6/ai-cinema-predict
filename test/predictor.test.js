@@ -16,6 +16,9 @@ const {
   SOURCE_WORK_SCREEN,
   SOURCE_SCREEN,
   SOURCE_GLOBAL,
+  CONFIDENCE_HIGH,
+  CONFIDENCE_MEDIUM,
+  CONFIDENCE_LOW,
 } = require('../src/config');
 
 // 実データを一度だけロード (読み取り専用)
@@ -244,6 +247,64 @@ test('テスト8: buildAggregates は決定的 (2回実行して同一)', () => 
   const a1 = buildAggregates(showings);
   const a2 = buildAggregates(showings);
   assert.deepEqual(a1, a2);
+});
+
+test('テスト9: historyCount は trainingShowCount の別名として同じ値を持つ', () => {
+  const entry = aggregates.workScreen[0];
+  const result = predictor.predict({
+    movieId: entry.movieId,
+    screenId: entry.screenId,
+    showDateTime: '2025-11-01 19:00',
+  });
+  assert.equal(result.historyCount, result.trainingShowCount);
+  assert.equal(result.historyCount, entry.trainingShowCount);
+});
+
+test('テスト10: confidence — work×screen は件数に応じて high/medium/low が変わる (予測精度ではなく過去実績量の参考度)', () => {
+  const synthetic = {
+    trainingWindow: { start: TRAINING_START, end: TRAINING_END },
+    workScreen: [
+      { movieId: 'M1', screenId: '1', trainingShowCount: 20, avgOccupancyPct: 10 }, // high境界
+      { movieId: 'M2', screenId: '1', trainingShowCount: 19, avgOccupancyPct: 10 }, // medium境界未満
+      { movieId: 'M3', screenId: '1', trainingShowCount: 5, avgOccupancyPct: 10 }, // medium境界
+      { movieId: 'M4', screenId: '1', trainingShowCount: 4, avgOccupancyPct: 10 }, // low
+    ],
+    screen: [],
+    global: { trainingShowCount: 100, avgOccupancyPct: 14 },
+  };
+  const p = createPredictor(synthetic);
+
+  assert.equal(p.predict({ movieId: 'M1', screenId: '1' }).confidence, CONFIDENCE_HIGH);
+  assert.equal(p.predict({ movieId: 'M2', screenId: '1' }).confidence, CONFIDENCE_MEDIUM);
+  assert.equal(p.predict({ movieId: 'M3', screenId: '1' }).confidence, CONFIDENCE_MEDIUM);
+  assert.equal(p.predict({ movieId: 'M4', screenId: '1' }).confidence, CONFIDENCE_LOW);
+});
+
+test('テスト11: confidence — screen 段は件数に関わらず high にはならない (作品への特化度が低いため)', () => {
+  const synthetic = {
+    trainingWindow: { start: TRAINING_START, end: TRAINING_END },
+    workScreen: [],
+    screen: [{ screenId: '1', trainingShowCount: 1638, avgOccupancyPct: 14 }],
+    global: { trainingShowCount: 16380, avgOccupancyPct: 14 },
+  };
+  const p = createPredictor(synthetic);
+  const result = p.predict({ movieId: 'NEW', screenId: '1' });
+  assert.equal(result.predictionSource, SOURCE_SCREEN);
+  assert.equal(result.confidence, CONFIDENCE_MEDIUM);
+  assert.notEqual(result.confidence, CONFIDENCE_HIGH);
+});
+
+test('テスト12: confidence — global 段は常に low', () => {
+  const synthetic = {
+    trainingWindow: { start: TRAINING_START, end: TRAINING_END },
+    workScreen: [],
+    screen: [],
+    global: { trainingShowCount: 16380, avgOccupancyPct: 14 },
+  };
+  const p = createPredictor(synthetic);
+  const result = p.predict({ movieId: 'NEW', screenId: 'NEW-SCREEN' });
+  assert.equal(result.predictionSource, SOURCE_GLOBAL);
+  assert.equal(result.confidence, CONFIDENCE_LOW);
 });
 
 // --- helper: 検証期間を含めて集計 (リーク比較用。本番ロジックでは絶対に使わない) ---

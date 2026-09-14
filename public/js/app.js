@@ -79,7 +79,7 @@ function render() {
     el.summary.textContent = `${view.dateLabel}・上映データがありません`;
     showStatus(el.status, {
       title: 'この日の上映データがありません',
-      body: 'データがある日付（2025年）を選んでください。',
+      body: `データがある日付（${dateMin()} 〜 ${dateMax()}）を選んでください。`,
     });
     return;
   }
@@ -138,8 +138,8 @@ function describeError(code) {
       return {
         title: 'データを読み込めませんでした',
         body:
-          'ファイルを直接開くと読み込みに失敗します。`npm run dev` で開発サーバーを起動し、' +
-          'http://localhost:5173 を開いてください。',
+          'ファイルを直接開くと読み込みに失敗します。ローカルで開発している場合は ' +
+          '`npm run dev` で開発サーバーを起動して開いてください。',
       };
     case 'PARSE':
     case 'SHAPE':

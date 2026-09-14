@@ -119,9 +119,17 @@ function createCard(showing) {
 
   li.appendChild(gauge);
 
-  // --- バッジ: 空いている判定 + 信頼度 ---
+  // --- バッジ: 空いている判定 + 信頼度 + (未来上映のみ) 未来予測の明示 ---
   const badges = document.createElement('div');
   badges.className = 'card__badges';
+
+  if (showing.isFuture) {
+    const b = document.createElement('span');
+    b.className = 'badge badge--future';
+    b.textContent = 'AI予測（先の上映予定）';
+    b.title = 'まだ販売実績のない、先の上映予定です。過去の実績にもとづくAI予測を表示しています。';
+    badges.appendChild(b);
+  }
 
   if (showing.isVacant) {
     const b = document.createElement('span');
@@ -144,6 +152,18 @@ function createCard(showing) {
   badges.appendChild(conf);
 
   li.appendChild(badges);
+
+  // --- STEP 9: 予測の根拠 + 過去実績の参考度 (既存バッジは変更せず、別要素として追加する) ---
+  if (showing.predictionBasisDetail) {
+    const basis = document.createElement('p');
+    basis.className = 'card__basis';
+    basis.textContent = `根拠: ${showing.predictionBasisDetail}／参考度: ${showing.confidence}`;
+    // 「参考度」は予測の精度そのものではなく、過去実績の件数に基づく目安であることを明示する
+    basis.title =
+      '参考度は、予測に使った過去実績の件数に基づく参考情報です。予測の精度そのものを示すものではありません。';
+    li.appendChild(basis);
+  }
+
   return li;
 }
 

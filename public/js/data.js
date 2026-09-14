@@ -22,6 +22,8 @@ const COL = {
   trainingShowCount: 8,
   isVacant: 9,
   vacancyRank: 10,
+  isFuture: 11,
+  confidenceCode: 12,
 };
 
 /** 予測根拠 (内部コード) → ユーザー向け文言。内部値はそのまま画面に出さない。 */
@@ -30,6 +32,28 @@ const SOURCE_TEXT = {
   s: { label: '参考値：スクリーンの過去実績から予測', kind: 'fallback' },
   g: { label: '参考値：劇場全体の過去実績から予測', kind: 'fallback' },
 };
+
+/**
+ * confidence (内部コード) → ユーザー向け文言。
+ * 「予測精度そのもの」と誤解されないよう、常に「過去実績の量に基づく参考度」という
+ * 文脈をセットで表示する (render.js 側の title/aria-label でも明示する)。
+ */
+const CONFIDENCE_TEXT = {
+  h: '高',
+  m: '中',
+  l: '低',
+};
+
+/**
+ * 予測根拠を「作品×スクリーンの過去12回を参考」のような具体的な文章にする。
+ * sourceCode と trainingShowCount は既に JSON にあるので、ここでは新しい判定はせず
+ * 文字列の組み立てだけを行う (10%判定・ランキングと同じく、値そのものの計算はしない)。
+ */
+function buildBasisDetail(sourceCode, trainingShowCount) {
+  if (sourceCode === 'w') return `作品×スクリーンの過去${trainingShowCount}回を参考`;
+  if (sourceCode === 's') return `スクリーンの過去${trainingShowCount}回を参考`;
+  return '全体平均を参考';
+}
 
 /** 時間帯フィルタの定義 (開始時刻の「時」で判定) */
 export const TIME_BANDS = [
@@ -104,9 +128,16 @@ export function getShowingsForDate(data, date) {
       isVacant: row[COL.isVacant] === 1,
       vacancyRank: row[COL.vacancyRank],
       trainingShowCount: row[COL.trainingShowCount],
+      // 未来の上映予定 (data/future_showings.csv 由来) かどうか。過去実績と混同させない表示に使う。
+      isFuture: row[COL.isFuture] === 1,
 
       confidenceLabel: source.label,
       confidenceKind: source.kind, // 'actual' | 'fallback'
+
+      // --- STEP 9: 説明可能性の追加項目 (既存フィールドは変更せず追加のみ) ---
+      historyCount: row[COL.trainingShowCount], // trainingShowCount の別名 (未来上映の文脈での呼び名)
+      confidence: CONFIDENCE_TEXT[row[COL.confidenceCode]] ?? '低', // '高' | '中' | '低' (過去実績の量に基づく参考度。予測精度ではない)
+      predictionBasisDetail: buildBasisDetail(row[COL.sourceCode], row[COL.trainingShowCount]),
     };
   });
 }

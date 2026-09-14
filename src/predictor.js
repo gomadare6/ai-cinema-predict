@@ -24,7 +24,31 @@ const {
   SOURCE_WORK_SCREEN,
   SOURCE_SCREEN,
   SOURCE_GLOBAL,
+  CONFIDENCE_HIGH_MIN_COUNT,
+  CONFIDENCE_MEDIUM_MIN_COUNT,
+  CONFIDENCE_HIGH,
+  CONFIDENCE_MEDIUM,
+  CONFIDENCE_LOW,
 } = require('./config');
+
+/**
+ * 説明可能性の追加項目 (STEP 9): 予測に使った過去実績の「量」に基づく confidence を求める。
+ * 予測精度そのものではない (UI側でもその旨を明示する)。
+ *   - work_screen 段: 件数が多いほど high。少なければ (最も特化した組み合わせでも) low。
+ *   - screen 段: 件数がどれだけあっても、作品への特化度が低いため high にはしない (上限 medium)。
+ *   - global 段: 常に low (どの作品・スクリーンにも特化していない)。
+ */
+function computeConfidence(source, count) {
+  if (source === SOURCE_WORK_SCREEN) {
+    if (count >= CONFIDENCE_HIGH_MIN_COUNT) return CONFIDENCE_HIGH;
+    if (count >= CONFIDENCE_MEDIUM_MIN_COUNT) return CONFIDENCE_MEDIUM;
+    return CONFIDENCE_LOW;
+  }
+  if (source === SOURCE_SCREEN) {
+    return count >= CONFIDENCE_MEDIUM_MIN_COUNT ? CONFIDENCE_MEDIUM : CONFIDENCE_LOW;
+  }
+  return CONFIDENCE_LOW;
+}
 
 /** 表示用の丸め (内部計算・ランキングには使わない)。6.43782 → 6.4 */
 function roundForDisplay(pct, decimals = DISPLAY_DECIMALS) {
@@ -118,6 +142,10 @@ function createPredictor(aggregates) {
       trainingShowCount, // 予測に使った学習上映数
 
       isVacant, // 予測混雑率 < 10% か
+
+      // --- STEP 9: 説明可能性の追加項目 (既存フィールドは変更しない・追加のみ) ---
+      historyCount: trainingShowCount, // trainingShowCount の別名 (未来上映の文脈での呼び名)
+      confidence: computeConfidence(predictionSource, trainingShowCount), // 'high' | 'medium' | 'low'
     };
   }
 

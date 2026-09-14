@@ -11,7 +11,7 @@
 # 依存パッケージなし（Node.js のビルトインのみ。要 Node 18+ 目安、開発は v24）
 npm run build        # data/*.csv -> derived/（予測用集計）-> derived/ui-showings.json
 npm run dev          # http://localhost:5173 で開発サーバー
-npm test             # Node テスト（67 件）
+npm test             # Node テスト（87 件）
 ```
 
 ## ビルド／公開
@@ -90,7 +90,7 @@ derived/     予測用集計 + ui-showings.json（npm run build で生成）
 src/         予測エンジン（config / csv / dataset / buildAggregates / predictor）
 scripts/     build-aggregates / build-ui-data / build-site / serve / verify-step3
 public/      Web UI（index.html / styles.css / js/）
-test/        Node テスト 67 件
+test/        Node テスト 87 件
 ml/          ML 比較検証（本番未接続）
 dist/        提出用静的サイト（build:site で生成・gitignore）
 ```
