@@ -82,6 +82,53 @@
         <ul class="cards" id="cards"></ul>
       </section>
 
+      <!-- このAIについて -->
+      <section class="about" aria-labelledby="about-heading">
+        <h2 id="about-heading" class="about__title">このAIについて</h2>
+
+        <div class="about__block">
+          <h3 class="about__heading">このAIは何を予測している？</h3>
+          <p class="about__body">上映ごとの「席の埋まり具合」を予測しています。</p>
+        </div>
+
+        <div class="about__block">
+          <h3 class="about__heading">何を使っている？</h3>
+          <p class="about__body">
+            過去のチケット販売実績から、上映ごとの混雑率を算出しています。
+          </p>
+        </div>
+
+        <div class="about__block">
+          <h3 class="about__heading">どうやって予測している？</h3>
+          <p class="about__body">
+            基本的には、<strong>作品 × スクリーン → スクリーン → 全体</strong>
+            の順に過去平均を参照します。作品×スクリーンの過去実績があればそれを使用し、
+            なければスクリーン平均、さらに履歴がなければ全体平均を使用します。
+          </p>
+          <p class="about__flow">作品 × スクリーン<br />↓<br />スクリーン<br />↓<br />全体</p>
+        </div>
+
+        <div class="about__block">
+          <h3 class="about__heading">「空いている」とは？</h3>
+          <p class="about__body">
+            予測混雑率10%未満の上映を「空いている可能性が高い」と表示しています。
+            過去の販売実績から混雑率を予測したものであり、実際の空席数ではありません。
+          </p>
+        </div>
+
+        <div class="about__block">
+          <h3 class="about__heading">検証結果</h3>
+          <p class="about__body">
+            2025年の過去データを使って学習し、2025年10月〜12月の未使用データで検証した結果、
+            MAE：<strong>4.28%</strong> でした。Top10に選んだ上映の
+            <strong>96.7%</strong>が、実測混雑率10%未満でした。
+          </p>
+          <p class="about__body">
+            参考度は過去データの量に基づく目安であり、予測精度そのものを表すものではありません。
+          </p>
+        </div>
+      </section>
+
       <footer class="site-footer">
         <p>
           <strong>表示している混雑率は予測値です。</strong>

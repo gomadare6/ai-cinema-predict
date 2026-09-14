@@ -153,14 +153,50 @@ function createCard(showing) {
 
   li.appendChild(badges);
 
+  // --- UIアップデート: 上映カードの短い説明文 (常時表示・断定しない表現のみ) ---
+  if (showing.reason) {
+    const reason = document.createElement('p');
+    reason.className = 'card__reason';
+    reason.textContent = showing.reason;
+    li.appendChild(reason);
+  }
+
   // --- STEP 9: 予測の根拠 + 過去実績の参考度 (既存バッジは変更せず、別要素として追加する) ---
+  // カードをクリック（タップ）すると詳細が開く <details> にして、根拠の内訳を確認できるようにする。
+  // ネイティブ <details>/<summary> はキーボード操作・aria-expanded 相当の状態表現を標準で備える。
   if (showing.predictionBasisDetail) {
-    const basis = document.createElement('p');
+    const basis = document.createElement('details');
     basis.className = 'card__basis';
-    basis.textContent = `根拠: ${showing.predictionBasisDetail}／参考度: ${showing.confidence}`;
     // 「参考度」は予測の精度そのものではなく、過去実績の件数に基づく目安であることを明示する
     basis.title =
       '参考度は、予測に使った過去実績の件数に基づく参考情報です。予測の精度そのものを示すものではありません。';
+
+    const summary = document.createElement('summary');
+    summary.className = 'card__basis-summary';
+    summary.textContent = `根拠: ${showing.predictionBasisDetail}／参考度: ${showing.confidence}`;
+    basis.appendChild(summary);
+
+    const list = document.createElement('dl');
+    list.className = 'card__basis-list';
+    const addRow = (term, desc) => {
+      const dt = document.createElement('dt');
+      dt.textContent = term;
+      const dd = document.createElement('dd');
+      dd.textContent = desc;
+      list.appendChild(dt);
+      list.appendChild(dd);
+    };
+    addRow('予測方法', showing.basisMethodLabel ?? showing.predictionBasisDetail);
+    addRow('過去上映', `${showing.historyCount}回`);
+    addRow('参考度', showing.confidence);
+    addRow('予測混雑率', `${Number(showing.predictedPct).toFixed(1)}%`);
+    basis.appendChild(list);
+
+    const note = document.createElement('p');
+    note.className = 'card__basis-note';
+    note.textContent = '※参考度は予測精度そのものではなく、過去データの件数に基づく目安です。';
+    basis.appendChild(note);
+
     li.appendChild(basis);
   }
 

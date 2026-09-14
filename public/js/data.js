@@ -55,6 +55,37 @@ function buildBasisDetail(sourceCode, trainingShowCount) {
   return '全体平均を参考';
 }
 
+/** 「予測の根拠」詳細欄の予測方法ラベル (内部コードを出さず自然な日本語にする)。 */
+const BASIS_METHOD_TEXT = {
+  w: '作品 × スクリーンの過去実績',
+  s: 'スクリーンの過去実績',
+  g: '全上映の過去実績',
+};
+
+/** predictionBasis ごとの自然な説明文 (【3. predictionBasisごとの文章】)。内部コードは出さない。 */
+const BASIS_SENTENCE_TEXT = {
+  w: '過去の同じ作品・スクリーンの上映実績をもとに予測しています。',
+  s: '同じスクリーンの過去上映実績をもとに予測しています。',
+  g: '全上映の過去実績をもとに予測しています。',
+};
+
+/**
+ * カードに常時表示する短い説明文 (【1. 上映カードに「おすすめ理由」を追加】)。
+ * データから言えないことは断定しない。sourceCode / isVacant は既に判定済みの値を使うだけで、
+ * ここで新しい統計判定は行わない。
+ */
+function buildReason(sourceCode, isVacant) {
+  if (sourceCode === 'w') {
+    return isVacant
+      ? '過去の同作品・同スクリーンでは比較的空いている傾向があります。'
+      : '過去の同作品・同スクリーンの上映実績をもとに予測しています。';
+  }
+  if (sourceCode === 's') {
+    return '同作品・同スクリーンの履歴がないため、スクリーンの過去実績をもとに予測しています。';
+  }
+  return '利用できるスクリーン履歴がないため、全体の過去実績をもとに予測しています。';
+}
+
 /** 時間帯フィルタの定義 (開始時刻の「時」で判定) */
 export const TIME_BANDS = [
   { id: 'all', label: 'すべて', match: () => true },
@@ -138,6 +169,11 @@ export function getShowingsForDate(data, date) {
       historyCount: row[COL.trainingShowCount], // trainingShowCount の別名 (未来上映の文脈での呼び名)
       confidence: CONFIDENCE_TEXT[row[COL.confidenceCode]] ?? '低', // '高' | '中' | '低' (過去実績の量に基づく参考度。予測精度ではない)
       predictionBasisDetail: buildBasisDetail(row[COL.sourceCode], row[COL.trainingShowCount]),
+
+      // --- UIアップデート: 予測根拠・おすすめ理由の追加 (既存フィールドは変更せず追加のみ) ---
+      reason: buildReason(row[COL.sourceCode], row[COL.isVacant] === 1),
+      basisMethodLabel: BASIS_METHOD_TEXT[row[COL.sourceCode]] ?? '全上映の過去実績',
+      basisSentence: BASIS_SENTENCE_TEXT[row[COL.sourceCode]] ?? BASIS_SENTENCE_TEXT.g,
     };
   });
 }
