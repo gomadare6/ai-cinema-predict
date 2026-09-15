@@ -76,7 +76,16 @@ function createCard(showing) {
   head.appendChild(headMain);
   li.appendChild(head);
 
-  // --- 下段: 予測混雑率（このカードの主役） ---
+  // --- 未来上映の明示 (デザイン監査: バッジではなく静かなテキストへ格下げ。情報は削除しない) ---
+  if (showing.isFuture) {
+    const note = document.createElement('p');
+    note.className = 'card__future-note';
+    note.textContent = 'AI予測（先の上映予定）';
+    note.title = 'まだ販売実績のない、先の上映予定です。過去の実績にもとづくAI予測を表示しています。';
+    li.appendChild(note);
+  }
+
+  // --- 下段: 予測混雑率（上映情報と並ぶ重要情報） ---
   const gauge = document.createElement('div');
   gauge.className = 'gauge';
 
@@ -119,17 +128,9 @@ function createCard(showing) {
 
   li.appendChild(gauge);
 
-  // --- バッジ: 空いている判定 + 信頼度 + (未来上映のみ) 未来予測の明示 ---
+  // --- バッジ: 空いている判定 + 信頼度 (カードあたり最大2種類に整理) ---
   const badges = document.createElement('div');
   badges.className = 'card__badges';
-
-  if (showing.isFuture) {
-    const b = document.createElement('span');
-    b.className = 'badge badge--future';
-    b.textContent = 'AI予測（先の上映予定）';
-    b.title = 'まだ販売実績のない、先の上映予定です。過去の実績にもとづくAI予測を表示しています。';
-    badges.appendChild(b);
-  }
 
   if (showing.isVacant) {
     const b = document.createElement('span');

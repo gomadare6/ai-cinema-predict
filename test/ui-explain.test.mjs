@@ -175,12 +175,17 @@ test('テスト4: historyCount (過去上映回数) が詳細欄に正しく出�
 });
 
 // 5) future 上映 → AI予測であることが分かる
-test('テスト5: 未来上映には AI予測バッジが付き、実績と混同しない', () => {
+// デザイン監査(バッジ最大2種類への整理)により、未来上映の明示はバッジではなく
+// 静かなテキスト (.card__future-note) へ格下げした。情報自体は削除していない。
+test('テスト5: 未来上映には AI予測である旨の表示があり、実績と混同しない', () => {
   const [normalCard, futureCard] = draw([workScreenShowing, futureShowing]);
+  assert.equal(normalCard.find('card__future-note'), null, '通常の上映には付かない');
   assert.equal(normalCard.find('badge--future'), null);
-  const badge = futureCard.find('badge--future');
-  assert.ok(badge);
-  assert.equal(badge.textContent, 'AI予測（先の上映予定）');
+
+  const note = futureCard.find('card__future-note');
+  assert.ok(note, '未来上映には表示される');
+  assert.equal(note.textContent, 'AI予測（先の上映予定）');
+  assert.equal(futureCard.find('badge--future'), null, 'バッジ化はしない（静かなテキストへ格下げ）');
 });
 
 // 6) 10%未満 → 「空いている可能性が高い」表示が維持される
