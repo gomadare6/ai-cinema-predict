@@ -21,6 +21,7 @@ const { PROJECT_ROOT, DERIVED_DIR } = require('../src/config');
 const DIST = path.join(PROJECT_ROOT, 'dist');
 const PUBLIC = path.join(PROJECT_ROOT, 'public');
 const UI_JSON = path.join(DERIVED_DIR, 'ui-showings.json');
+const ANALYTICS_DIR = path.join(DERIVED_DIR, 'analytics');
 
 function copyDir(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
@@ -43,6 +44,13 @@ function main() {
 
   fs.mkdirSync(path.join(DIST, 'derived'), { recursive: true });
   fs.copyFileSync(UI_JSON, path.join(DIST, 'derived', 'ui-showings.json'));
+
+  if (fs.existsSync(ANALYTICS_DIR)) {
+    copyDir(ANALYTICS_DIR, path.join(DIST, 'derived', 'analytics'));
+  } else {
+    console.error(`${ANALYTICS_DIR} がありません。先に \`npm run build:analytics\` を実行してください。`);
+    process.exit(1);
+  }
 
   // Node からの module 判定用の public/package.json は本番サイトに不要
   fs.rmSync(path.join(DIST, 'package.json'), { force: true });

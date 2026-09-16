@@ -2,6 +2,8 @@
  * DOM 描画。データの加工や判定はここでは行わない (data.js / STEP 5 の値をそのまま出す)。
  */
 
+import { loadSeatMapData, getSeatMapFor } from './seatmap.js';
+
 /** チップ（トグルボタン）群を描画する。 */
 export function renderChips(container, items, activeId, onSelect) {
   container.textContent = '';
@@ -201,7 +203,139 @@ function createCard(showing) {
     li.appendChild(basis);
   }
 
+  // --- 座席の状況 (実績のある上映のみ)。座席の個別人気は扱わない。その上映の今の埋まり方だけ。 ---
+  if (!showing.isFuture) {
+    li.appendChild(createSeatMapDetails(showing));
+  }
+
   return li;
+}
+
+/** 空席の孤立空席率から、データで言える範囲に限定した一言を作る。断定表現は避ける。 */
+function describeVacancyQuality(info) {
+  if (info.emptyCount === 0) return '満席です。空席はありません。';
+  if (info.isolatedRatePct >= 50) {
+    return '空席はありますが、1席だけ離れて空いている「孤立空席」が多く、連続した空席は少ない状態です。';
+  }
+  if (info.isolatedRatePct > 0) {
+    return '空席の一部は1席だけ離れて空いています。まとまった空席も残っています。';
+  }
+  return '残っている空席はまとまって空いている（連続した空席が多い）状態です。';
+}
+
+/** 座席マップ (実績データに基づく分析) を <details> として作る。中身は初回オープン時に読み込む。 */
+function createSeatMapDetails(showing) {
+  const details = document.createElement('details');
+  details.className = 'card__seatmap';
+  details.title = '実績データに基づく、この上映の座席の埋まり方です（個別座席の人気ランキングではありません）。';
+
+  const summary = document.createElement('summary');
+  summary.className = 'card__seatmap-summary';
+  summary.textContent = '座席の状況を見る（実績データ）';
+  details.appendChild(summary);
+
+  const body = document.createElement('div');
+  body.className = 'card__seatmap-body';
+  details.appendChild(body);
+
+  let loaded = false;
+  details.addEventListener('toggle', () => {
+    if (!details.open || loaded) return;
+    loaded = true;
+    body.textContent = '';
+    const loadingNote = document.createElement('p');
+    loadingNote.className = 'card__seatmap-note';
+    loadingNote.textContent = '読み込み中…';
+    body.appendChild(loadingNote);
+
+    loadSeatMapData()
+      .then((data) => {
+        const info = getSeatMapFor(data, showing.showingId, showing.screenId);
+        body.textContent = '';
+        if (!info) {
+          const note = document.createElement('p');
+          note.className = 'card__seatmap-note';
+          note.textContent = 'この上映の座席データはありません。';
+          body.appendChild(note);
+          return;
+        }
+        body.appendChild(buildSeatMapContent(info));
+      })
+      .catch(() => {
+        body.textContent = '';
+        const note = document.createElement('p');
+        note.className = 'card__seatmap-note';
+        note.textContent = '座席データの読み込みに失敗しました。';
+        body.appendChild(note);
+      });
+  });
+
+  return details;
+}
+
+/** 座席マップの中身 (見出し文・指標・グリッド・凡例) を組み立てる。 */
+function buildSeatMapContent(info) {
+  const frag = document.createDocumentFragment();
+
+  const disclosure = document.createElement('p');
+  disclosure.className = 'card__seatmap-source';
+  disclosure.textContent = '※実績データに基づく分析です。表示中の座席状態はこの上映の販売実績によるものです。';
+  frag.appendChild(disclosure);
+
+  const stats = document.createElement('dl');
+  stats.className = 'card__seatmap-stats';
+  const addStat = (term, desc) => {
+    const dt = document.createElement('dt');
+    dt.textContent = term;
+    const dd = document.createElement('dd');
+    dd.textContent = desc;
+    stats.appendChild(dt);
+    stats.appendChild(dd);
+  };
+  addStat('空席数', `${info.emptyCount}席`);
+  addStat('孤立空席率', `${info.isolatedRatePct}%`);
+  frag.appendChild(stats);
+
+  const quality = document.createElement('p');
+  quality.className = 'card__seatmap-quality';
+  quality.textContent = describeVacancyQuality(info);
+  frag.appendChild(quality);
+
+  const noteAboutIndex = document.createElement('p');
+  noteAboutIndex.className = 'card__seatmap-note';
+  noteAboutIndex.textContent =
+    '孤立空席率は「両隣が売れていて1席だけ空いている座席」の割合です。座りやすさそのものではなく、空席の連続性・偏りを示す目安です。';
+  frag.appendChild(noteAboutIndex);
+
+  const grid = document.createElement('div');
+  grid.className = 'seatmap-grid';
+  for (const row of info.rows) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'seatmap-row';
+    for (const segment of row.segments) {
+      const segEl = document.createElement('div');
+      segEl.className = 'seatmap-segment';
+      for (const seatId of segment) {
+        const seat = info.seats.find((s) => s.seatId === seatId);
+        const cell = document.createElement('span');
+        cell.className = `seatmap-seat seatmap-seat--${seat ? seat.state : 'empty'}`;
+        segEl.appendChild(cell);
+      }
+      rowEl.appendChild(segEl);
+    }
+    grid.appendChild(rowEl);
+  }
+  frag.appendChild(grid);
+
+  const legend = document.createElement('div');
+  legend.className = 'seatmap-legend';
+  legend.innerHTML =
+    '<span><i class="seatmap-seat seatmap-seat--sold"></i>販売済み</span>' +
+    '<span><i class="seatmap-seat seatmap-seat--empty"></i>空席</span>' +
+    '<span><i class="seatmap-seat seatmap-seat--isolated"></i>孤立空席</span>';
+  frag.appendChild(legend);
+
+  return frag;
 }
 
 function sep() {

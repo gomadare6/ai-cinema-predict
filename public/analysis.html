@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b111a" />
+    <title>分析データ｜AI 空いてる映画</title>
+    <meta
+      name="description"
+      content="AI予測の検証結果、座席の空き方、映画別・スクリーン別の混雑傾向、映画館の運営データをまとめた分析ページです。"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header analysis-page-header">
+      <div class="site-header__media" aria-hidden="true"></div>
+      <div class="wrap site-header__inner">
+        <p class="site-header__eyebrow">シネシティザート</p>
+        <h1 class="site-header__title">分析データ</h1>
+        <p class="site-header__lead">
+          過去の販売実績をAI・データ分析で見える化しています。<br class="br-sp" />
+          予測の検証結果、座席の空き方、映画館の運営課題まで確認できます。
+        </p>
+        <nav class="site-header__nav">
+          <a class="site-header__nav-link" href="./index.html">← 上映一覧にもどる</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap main">
+      <div id="status" class="status" hidden></div>
+
+      <!-- 予測 vs 実績 -->
+      <section class="analysis-section" id="section-validation" aria-labelledby="validation-heading" hidden>
+        <h2 id="validation-heading" class="analysis-section__title">予測 vs 実績</h2>
+        <p class="analysis-section__lead">
+          過去の販売実績から予測した混雑率と、実際の販売結果を比較しています。
+          予測には検証期間（10〜12月）の実績を一切使わず、1〜9月の実績だけで学習しています。
+        </p>
+
+        <dl class="stat-grid" id="validation-stats"></dl>
+
+        <div class="analysis-chart-wrap">
+          <canvas id="scatter-canvas" width="640" height="360" role="img" aria-label="予測混雑率と実績混雑率の散布図"></canvas>
+          <p class="analysis-chart-caption">
+            横軸: AI予測混雑率（%） / 縦軸: 実際の混雑率（%）。点線は「予測＝実績」の目安線です。
+            点が目安線に近いほど、予測が実績に近かったことを示します。
+          </p>
+        </div>
+
+        <div class="analysis-table-wrap">
+          <table class="analysis-table" id="validation-source-table"></table>
+        </div>
+      </section>
+
+      <!-- 意外な結果 -->
+      <section class="analysis-section" id="section-surprise" aria-labelledby="surprise-heading" hidden>
+        <h2 id="surprise-heading" class="analysis-section__title">データ分析で確認された、意外な結果</h2>
+        <p class="analysis-section__lead">
+          「きっとこうだろう」という予想と、実際の集計結果を比べています。AIが見つけたわけではなく、
+          単純な平均の比較で確認できた傾向です。
+        </p>
+        <div class="analysis-bars" id="surprise-weekday">
+          <h3 class="analysis-subheading">曜日種別ごとの平均混雑率</h3>
+        </div>
+        <div class="analysis-bars" id="surprise-hour">
+          <h3 class="analysis-subheading">時間帯ごとの平均混雑率</h3>
+        </div>
+        <div class="analysis-bars" id="surprise-late">
+          <h3 class="analysis-subheading">レイトショーと通常上映の平均混雑率</h3>
+        </div>
+      </section>
+
+      <!-- 映画別プロフィール -->
+      <section class="analysis-section" id="section-movies" aria-labelledby="movies-heading" hidden>
+        <h2 id="movies-heading" class="analysis-section__title">映画別プロフィール</h2>
+        <p class="analysis-section__lead">
+          同じ映画でも、上映するスクリーンや回によって混雑率が大きく変わることがあります。
+          作品名の公開日データは不整合が確認されているため、ここでは使っていません。
+        </p>
+
+        <div class="field">
+          <label class="field__label" for="movie-select">映画を選ぶ（上映回数の多い順）</label>
+          <select id="movie-select" class="movie-select"></select>
+        </div>
+
+        <dl class="stat-grid" id="movie-stats"></dl>
+        <div class="analysis-table-wrap">
+          <table class="analysis-table" id="movie-screen-table"></table>
+        </div>
+
+        <h3 class="analysis-subheading">混雑率のばらつきが大きい作品 TOP5</h3>
+        <div class="analysis-table-wrap">
+          <table class="analysis-table" id="movie-variance-table"></table>
+        </div>
+      </section>
+
+      <!-- スクリーン別プロフィール -->
+      <section class="analysis-section" id="section-screens" aria-labelledby="screens-heading" hidden>
+        <h2 id="screens-heading" class="analysis-section__title">スクリーン別プロフィール</h2>
+        <p class="analysis-section__lead">
+          定員が小さいスクリーンほど平均混雑率が高い傾向がデータで確認できます（必ず混むという意味ではありません）。
+        </p>
+        <div class="analysis-table-wrap">
+          <table class="analysis-table" id="screen-table"></table>
+        </div>
+      </section>
+
+      <!-- 映画館データ（スタッフ向け分析） -->
+      <section class="analysis-section" id="section-staff" aria-labelledby="staff-heading" hidden>
+        <h2 id="staff-heading" class="analysis-section__title">映画館データ（運営スタッフ向け）</h2>
+        <p class="analysis-section__lead">
+          現場から報告されている課題と、実際の販売・上映データを比較できるようにしています。
+          「問題がある」と断定するのではなく、スタッフの申告と実データを並べて確認できることを目的としています。
+        </p>
+
+        <h3 class="analysis-subheading">孤立空席（1席だけ空く空席）の発生状況</h3>
+        <dl class="stat-grid" id="isolated-stats"></dl>
+        <div class="analysis-table-wrap">
+          <table class="analysis-table" id="isolated-band-table"></table>
+        </div>
+
+        <h3 class="analysis-subheading">上映間インターバル（清掃時間）</h3>
+        <p class="analysis-section__note">
+          スタッフからは「清掃時間が20〜25分しかない」という課題が報告されています。実際の上映スケジュールから、
+          同一スクリーン・同一日の連続する上映の間隔を集計しました。
+        </p>
+        <dl class="stat-grid" id="cleaning-stats"></dl>
+        <div class="analysis-bars" id="cleaning-buckets"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer wrap">
+      <p><strong>表示している数値はすべて実績データに基づく集計です。</strong> 個別座席の人気ランキングは作成していません。</p>
+    </footer>
+
+    <script type="module" src="./js/analysis-app.js"></script>
+  </body>
+</html>

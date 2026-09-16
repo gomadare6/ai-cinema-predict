@@ -6,7 +6,8 @@
   "scripts": {
     "build:aggregates": "node scripts/build-aggregates.js",
     "build:ui": "node scripts/build-ui-data.js",
-    "build": "npm run build:aggregates && npm run build:ui",
+    "build:analytics": "node scripts/build-analytics.js",
+    "build": "npm run build:aggregates && npm run build:ui && npm run build:analytics",
     "build:site": "node scripts/build-site.js",
     "verify:step3": "node scripts/verify-step3.js",
     "verify:candidates": "node scripts/evaluate-future-candidates.js",

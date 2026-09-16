@@ -14,7 +14,11 @@ const { DATA_DIR, TRAINING_START, TRAINING_END, VALIDATION_START, VALIDATION_END
 
 const FUTURE_SHOWINGS_FILE = 'future_showings.csv';
 
-/** screens.csv → Map<screenId(string), { screenId, screenName, seatCapacity(number) }> */
+/**
+ * screens.csv → Map<screenId(string), { screenId, screenName, seatCapacity(number), ... }>
+ * 予測に使うのは screenId/screenName/seatCapacity のみ。設備情報は分析機能の表示のためだけに保持する
+ * (予測の特徴量には使わない)。
+ */
 function loadScreens(dataDir = DATA_DIR) {
   const { rows } = readCsv(path.join(dataDir, 'screens.csv'));
   const map = new Map();
@@ -23,6 +27,10 @@ function loadScreens(dataDir = DATA_DIR) {
       screenId: r['スクリーンID'],
       screenName: r['スクリーン名'],
       seatCapacity: Number(r['座席数']),
+      wheelchairSeats: Number(r['車イス席数']),
+      screenSize: r['スクリーンサイズ'],
+      soundSystem: r['音響システム'],
+      equipment: r['仕様'],
     });
   }
   return map;
@@ -42,7 +50,11 @@ function loadMovies(dataDir = DATA_DIR) {
   return map;
 }
 
-/** schedules.csv → 上映レコード配列 (実績混雑率はまだ無し) */
+/**
+ * schedules.csv → 上映レコード配列 (実績混雑率はまだ無し)。
+ * レイトショー/曜日種別/特別日は予測には使わない (既存の予測ロジックは不変)。
+ * 分析機能 (src/analytics.js) の「意外な結果」表示のためだけに保持する。
+ */
 function loadSchedules(dataDir = DATA_DIR) {
   const { rows } = readCsv(path.join(dataDir, 'schedules.csv'));
   return rows.map((r) => ({
@@ -53,6 +65,9 @@ function loadSchedules(dataDir = DATA_DIR) {
     showDate: r['上映日'],
     startTime: r['開始時刻'],
     endTime: r['終了時刻'],
+    lateShow: r['レイトショー'] === 'True',
+    weekdayType: r['曜日種別'],
+    specialDay: r['特別日'],
   }));
 }
 
