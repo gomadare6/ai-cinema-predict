@@ -22,7 +22,6 @@ const {
   computeValidationReport,
   computeMovieProfiles,
   computeScreenProfiles,
-  computeCleaningGapStats,
   computeSurpriseComparisons,
   computeIsolatedSeatSummary,
 } = require('../src/analytics');
@@ -54,13 +53,11 @@ function main() {
   fs.writeFileSync(path.join(OUT_DIR, 'screens.json'), JSON.stringify(screenProfiles), 'utf8');
   console.log(`スクリーンプロフィール: ${screenProfiles.length}件`);
 
-  // --- 4) 映画館データ (スタッフ向け): 清掃間隔 + 孤立空席の傾向 + 意外な結果 ---
-  const cleaningGap = computeCleaningGapStats(schedules);
+  // --- 4) 映画館データ (スタッフ向け): 孤立空席の傾向 + 意外な結果 ---
   const isolatedSummary = computeIsolatedSeatSummary(showings, soldSeatIdsByShowing, screenLayouts);
   const surprises = computeSurpriseComparisons(showings, schedules);
-  const staff = { cleaningGap, isolatedSummary, surprises };
+  const staff = { isolatedSummary, surprises };
   fs.writeFileSync(path.join(OUT_DIR, 'staff.json'), JSON.stringify(staff), 'utf8');
-  console.log(`清掃間隔サンプル: ${cleaningGap.sampleCount}件 (平均${cleaningGap.meanMinutes?.toFixed(1)}分)`);
   console.log(`孤立空席あり上映: ${isolatedSummary.showingsWithIsolatedSeat}/${isolatedSummary.totalConsidered}`);
 
   // --- 5) 座席マップ (座席の状況 + 孤立空席率) ---

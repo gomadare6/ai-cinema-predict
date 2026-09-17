@@ -155,12 +155,28 @@ function drawScatter(points) {
 
 // ---------- 意外な結果 ----------
 
+/**
+ * バーの長さを「グループ内の最大値」基準にすると、今回のように値がすべて14%前後で
+ * 近いケースでは全バーがほぼ満タン幅になり、「差がない」がむしろ伝わらなくなる
+ * (満タン＝大きい値、と誤読される)。3グループ共通の固定スケールを使い、
+ * 実際の値の大きさ（14%前後）をそのまま見せたうえで、差はテキストでも明示する。
+ */
+const SURPRISE_SCALE_MAX = 25; // 全体平均(約13.8%)に対して余白を持たせた固定上限
+
 function renderSurpriseGroup(containerId, rows) {
   const container = document.getElementById(containerId);
-  const maxVal = Math.max(...rows.map((r) => r.avgOccupancyPct || 0), 1);
+
+  const values = rows.map((r) => r.avgOccupancyPct || 0);
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const diff = document.createElement('p');
+  diff.className = 'analysis-section__note';
+  diff.textContent = `最大と最小の差: ${(max - min).toFixed(2)}ポイント`;
+  container.appendChild(diff);
+
   for (const r of rows) {
     container.appendChild(
-      buildBarRow(r.key, r.avgOccupancyPct || 0, maxVal, `${fixed(r.avgOccupancyPct)}%（n=${r.count}）`)
+      buildBarRow(r.key, r.avgOccupancyPct || 0, SURPRISE_SCALE_MAX, `${fixed(r.avgOccupancyPct)}%（n=${r.count}）`)
     );
   }
 }
@@ -280,20 +296,6 @@ function renderStaff(staff) {
     ['混雑率帯', '該当上映数', '平均孤立空席率'],
     ...isolated.byOccupancyBand.map((b) => [b.band, `${b.count}件`, pct(b.avgIsolatedRate)]),
   ]);
-
-  const gap = staff.cleaningGap;
-  const gdl = document.getElementById('cleaning-stats');
-  addStat(gdl, 'サンプル数', `${gap.sampleCount}件`);
-  addStat(gdl, '平均間隔', gap.meanMinutes == null ? '-' : `${fixed(gap.meanMinutes, 1)}分`);
-  addStat(gdl, '中央値', gap.medianMinutes == null ? '-' : `${gap.medianMinutes}分`);
-  addStat(gdl, '25分未満の割合', gap.under25MinRate == null ? '-' : `${(gap.under25MinRate * 100).toFixed(1)}%`);
-
-  const buckets = gap.buckets;
-  const maxCount = Math.max(...Object.values(buckets), 1);
-  const container = document.getElementById('cleaning-buckets');
-  for (const [label, count] of Object.entries(buckets)) {
-    container.appendChild(buildBarRow(`${label}分`, count, maxCount, `${count}件`));
-  }
 }
 
 async function init() {
