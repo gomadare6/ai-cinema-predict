@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="AI 空いてる映画">
+  <!-- 夜の映画館（Dark Cinema Luxury）の配色。地色 #0b111a・アクセント真鍮 #c9a227 -->
+  <rect width="32" height="32" rx="7" fill="#0b111a" />
+  <!-- 背もたれ -->
+  <rect x="10" y="6.5" width="12" height="11.5" rx="3.2" fill="#c9a227" />
+  <!-- 肘掛け -->
+  <rect x="6" y="12.8" width="3.4" height="9.2" rx="1.7" fill="#c9a227" />
+  <rect x="22.6" y="12.8" width="3.4" height="9.2" rx="1.7" fill="#c9a227" />
+  <!-- 座面 -->
+  <rect x="8.4" y="18.2" width="15.2" height="4.8" rx="2.1" fill="#c9a227" />
+  <!-- 脚 -->
+  <rect x="10.8" y="22.6" width="2.4" height="3.2" rx="1.1" fill="#c9a227" opacity="0.72" />
+  <rect x="18.8" y="22.6" width="2.4" height="3.2" rx="1.1" fill="#c9a227" opacity="0.72" />
+</svg>
