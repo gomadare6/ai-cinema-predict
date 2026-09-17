@@ -1,16 +1,10 @@
 'use strict';
 
 /**
- * 「分析」機能 (予測 vs 実績 / 座席の質 / 映画別・スクリーン別プロフィール /
- *  意外な結果 / 映画館データ) 向けの集計処理。
- *
- * 重要な前提 (README・既存 src/predictor.js と同じ):
- *  - ここでの集計結果は本番の予測ロジック (work×screen → screen → global) を
- *    一切変更しない。予測に使う derived/*_avg.csv・global_avg.json はそのまま。
- *  - ticket_sales.csv は 1行 = 1販売座席として扱う (人数・グループ数は使わない)。
- *  - 座席単位の販売頻度には現実的でない偏りが確認されているため、
- *    個別座席の人気ランキングや、座席を予測の特徴量として使う処理はここに置かない。
- *  - movies.csv の「公開日」はデータ不整合が確認されているため、ここでは使わない。
+ * 分析ページ（予測vs実績・座席の質・映画別/スクリーン別プロフィール・意外な結果・映画館データ）向けの集計。
+ * 本番の予測ロジック（work×screen → screen → global）は変更しない。表示専用の集計のみ。
+ * ticket_sales.csv は1行=1販売座席として扱う。個別座席ランキングは作らない。
+ * movies.csv の「公開日」はデータ不整合があるため使わない。
  */
 
 const path = require('path');
@@ -34,12 +28,7 @@ function stdev(xs) {
   return Math.sqrt(variance);
 }
 
-/**
- * ticket_sales.csv を1回だけ読み、上映IDごとの販売座席ID集合を作る。
- * 大きいファイルなので forEachCsvRow でストリーム処理する (メモリに全文は持たない)。
- * @param {string} dataDir
- * @returns {Map<string, Set<string>>}
- */
+/** ticket_sales.csv をストリーム処理し、上映IDごとの販売座席ID集合を作る。 */
 function loadSoldSeatIdsByShowing(dataDir = DATA_DIR) {
   const byShowing = new Map();
   let showingIdIdx = -1;
@@ -61,12 +50,7 @@ function loadSoldSeatIdsByShowing(dataDir = DATA_DIR) {
   return byShowing;
 }
 
-/**
- * 予測 vs 実績のレポートを作る (検証期間: config.VALIDATION_START〜END)。
- * scripts/verify-step3.js と同じ計算をベースに、散布図用サンプルも返す。
- * @param {Array<object>} showings loadShowings().showings
- * @param {number} [sampleSize] 散布図に含める点の最大数
- */
+/** 予測vs実績のレポート（検証期間）。scripts/verify-step3.js と同じ計算＋散布図サンプル。 */
 function computeValidationReport(showings, sampleSize = 600) {
   const aggregates = buildAggregates(showings);
   const { predict } = createPredictor(aggregates);
@@ -138,11 +122,7 @@ function computeValidationReport(showings, sampleSize = 600) {
   };
 }
 
-/**
- * 映画ごとの混雑プロフィール。学習+検証期間の全実績上映を対象にする
- * (この機能は予測入力ではなく、実績の説明表示なのでデータリークの制約は無い)。
- * movies.csv の「公開日」は使わない (データ不整合が確認済みのため)。
- */
+/** 映画ごとの混雑プロフィール（学習+検証期間の全実績が対象。表示専用のためリーク制約なし）。 */
 function computeMovieProfiles(showings) {
   const actual = showings.filter((s) => !s.isFuture && s.actualOccupancyPct != null);
   const byMovie = new Map();
@@ -207,11 +187,7 @@ function computeScreenProfiles(showings, screenMeta) {
     .sort((a, b) => (b.capacity || 0) - (a.capacity || 0));
 }
 
-/**
- * 清掃インターバルの実測値 (同一スクリーン・同一日の連続上映間隔)。
- * staff_issues.txt の「20〜25分しかない」という申告と、実データの分布を比較できるようにする。
- * 「短いから問題」とは断定せず、分布と平均だけを返す (文言は表示側で慎重に扱う)。
- */
+/** 清掃インターバルの実測値（同一スクリーン・同一日の連続上映間隔）。分布と平均を返すのみ。 */
 function computeCleaningGapStats(schedules) {
   function toMinutes(t) {
     const [h, m] = String(t).split(':').map(Number);
@@ -255,10 +231,7 @@ function computeCleaningGapStats(schedules) {
   };
 }
 
-/**
- * 「意外な結果」向けの比較集計: 曜日種別・時間帯・レイトショーの有無ごとの平均混雑率。
- * 「◯◯だから空いている」と一般化しないための素材として、単純な平均の比較だけを返す。
- */
+/** 曜日種別・時間帯・レイトショー有無ごとの平均混雑率（単純比較のみ）。 */
 function computeSurpriseComparisons(showings, schedules) {
   const scheduleById = new Map(schedules.map((s) => [s.showingId, s]));
   const actual = showings.filter((s) => !s.isFuture && s.actualOccupancyPct != null);
@@ -304,12 +277,7 @@ function computeSurpriseComparisons(showings, schedules) {
   };
 }
 
-/**
- * 混雑率帯ごとの孤立空席率の傾向。全実績上映を対象に座席配置と付き合わせて計算する。
- * @param {Array<object>} showings
- * @param {Map<string, Set<string>>} soldSeatIdsByShowing
- * @param {Map<string, object>} screenLayouts screenId -> buildScreenLayout() の戻り値
- */
+/** 混雑率帯ごとの孤立空席率の傾向。 */
 function computeIsolatedSeatSummary(showings, soldSeatIdsByShowing, screenLayouts) {
   const actual = showings.filter((s) => !s.isFuture && s.actualOccupancyPct != null);
   const bandOf = (pct) => {
@@ -330,18 +298,12 @@ function computeIsolatedSeatSummary(showings, soldSeatIdsByShowing, screenLayout
     if (usage.isolatedCount > 0) showingsWithIsolated++;
 
     const band = bandOf(usage.occupancyPct);
-    if (!byBand.has(band)) byBand.set(band, { count: 0, isolatedRates: [], emptyIsIsolatedShare: [] });
-    const g = byBand.get(band);
-    g.count++;
-    g.isolatedRates.push(usage.isolatedRate);
+    if (!byBand.has(band)) byBand.set(band, []);
+    byBand.get(band).push(usage.isolatedRate);
   }
 
   const bands = [...byBand.entries()]
-    .map(([band, g]) => ({
-      band,
-      count: g.count,
-      avgIsolatedRate: mean(g.isolatedRates),
-    }))
+    .map(([band, rates]) => ({ band, count: rates.length, avgIsolatedRate: mean(rates) }))
     .sort((a, b) => Number(a.band.split('-')[0]) - Number(b.band.split('-')[0]));
 
   return {

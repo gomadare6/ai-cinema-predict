@@ -1,14 +1,7 @@
 /**
  * 座席マップ / 孤立空席率のデータ読み込み。
- *
- * derived/analytics/seat-layout.json (スクリーンの座席配置, 数十KB) と
- * derived/analytics/seatmaps.json (上映ごとの座席状態, 数MB) は、
- * トップ画面の初期表示では取得しない。カードの「座席の状況を見る」が
- * 最初に開かれたときに1回だけ取得し、以降はメモリにキャッシュして使い回す。
- *
- * ここでは座席の個別人気（どの座席がよく売れるか）は一切扱わない。
- * 扱うのは「その上映で今どの座席が売れている/空いている/孤立空席か」という
- * その上映限りの状態だけ。
+ * derived/analytics/{seat-layout,seatmaps}.json はトップ画面では取得せず、
+ * カードの「座席の状況を見る」が最初に開かれたときに1回だけ取得してキャッシュする。
  */
 
 let loadPromise = null;
@@ -31,12 +24,7 @@ export function loadSeatMapData() {
   return loadPromise;
 }
 
-/**
- * 1上映分の座席マップ情報を組み立てる。実績データが無い上映 (未来の上映予定) は null。
- * @param {{layouts:object, seatmaps:object}} data loadSeatMapData() の戻り値
- * @param {string} showingId
- * @param {string} screenId
- */
+/** 1上映分の座席マップ情報を組み立てる。実績データが無い上映（未来の上映予定）は null。 */
 export function getSeatMapFor(data, showingId, screenId) {
   const entry = data.seatmaps[showingId];
   const layout = data.layouts[String(screenId)];

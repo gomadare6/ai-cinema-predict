@@ -1,7 +1,4 @@
-/**
- * 分析ページの描画とイベント配線。
- * derived/analytics/*.json の値をそのまま表示するだけで、新しい統計判定はしない。
- */
+/** 分析ページの描画とイベント配線。derived/analytics/*.json の値をそのまま表示するだけ。 */
 
 import { loadAnalyticsData } from './analysis-data.js';
 
@@ -155,13 +152,9 @@ function drawScatter(points) {
 
 // ---------- 意外な結果 ----------
 
-/**
- * バーの長さを「グループ内の最大値」基準にすると、今回のように値がすべて14%前後で
- * 近いケースでは全バーがほぼ満タン幅になり、「差がない」がむしろ伝わらなくなる
- * (満タン＝大きい値、と誤読される)。3グループ共通の固定スケールを使い、
- * 実際の値の大きさ（14%前後）をそのまま見せたうえで、差はテキストでも明示する。
- */
-const SURPRISE_SCALE_MAX = 25; // 全体平均(約13.8%)に対して余白を持たせた固定上限
+// グループ内最大値を基準にすると値が近いとき全バーが満タン幅になり差が伝わらないため、
+// 3グループ共通の固定スケールを使う（全体平均 約13.8% に余白を持たせた上限）。
+const SURPRISE_SCALE_MAX = 25;
 
 function renderSurpriseGroup(containerId, rows) {
   const container = document.getElementById(containerId);

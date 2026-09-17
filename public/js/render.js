@@ -203,7 +203,7 @@ function createCard(showing) {
     li.appendChild(basis);
   }
 
-  // --- 座席の状況 (実績のある上映のみ)。座席の個別人気は扱わない。その上映の今の埋まり方だけ。 ---
+  // --- 座席の状況 (実績のある上映のみ) ---
   if (!showing.isFuture) {
     li.appendChild(createSeatMapDetails(showing));
   }
@@ -221,6 +221,14 @@ function describeVacancyQuality(info) {
     return '空席の一部は1席だけ離れて空いています。まとまった空席も残っています。';
   }
   return '残っている空席はまとまって空いている（連続した空席が多い）状態です。';
+}
+
+function setNote(body, text) {
+  body.textContent = '';
+  const note = document.createElement('p');
+  note.className = 'card__seatmap-note';
+  note.textContent = text;
+  body.appendChild(note);
 }
 
 /** 座席マップ (実績データに基づく分析) を <details> として作る。中身は初回オープン時に読み込む。 */
@@ -242,32 +250,16 @@ function createSeatMapDetails(showing) {
   details.addEventListener('toggle', () => {
     if (!details.open || loaded) return;
     loaded = true;
-    body.textContent = '';
-    const loadingNote = document.createElement('p');
-    loadingNote.className = 'card__seatmap-note';
-    loadingNote.textContent = '読み込み中…';
-    body.appendChild(loadingNote);
+    setNote(body, '読み込み中…');
 
     loadSeatMapData()
       .then((data) => {
         const info = getSeatMapFor(data, showing.showingId, showing.screenId);
+        if (!info) return setNote(body, 'この上映の座席データはありません。');
         body.textContent = '';
-        if (!info) {
-          const note = document.createElement('p');
-          note.className = 'card__seatmap-note';
-          note.textContent = 'この上映の座席データはありません。';
-          body.appendChild(note);
-          return;
-        }
         body.appendChild(buildSeatMapContent(info));
       })
-      .catch(() => {
-        body.textContent = '';
-        const note = document.createElement('p');
-        note.className = 'card__seatmap-note';
-        note.textContent = '座席データの読み込みに失敗しました。';
-        body.appendChild(note);
-      });
+      .catch(() => setNote(body, '座席データの読み込みに失敗しました。'));
   });
 
   return details;

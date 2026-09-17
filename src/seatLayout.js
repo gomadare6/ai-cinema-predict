@@ -1,25 +1,16 @@
 'use strict';
 
 /**
- * seats.csv から座席配置を読み込み、上映ごとの座席利用状況（空席・孤立空席）を
- * 判定するための「配置」だけを組み立てるモジュール。
- *
- * 座席の個別人気（どの座席がよく売れるか）はここでは一切扱わない。
- * データ分析で確認済みの通り、座席単位の販売頻度には現実的でない偏り
- * （特定座席が不自然に高頻度で売れる）があり、個別座席ランキング化は行わない。
- * ここで使うのは「区画（通路で区切られたひとまとまり）の中で、ある上映において
- * どの座席が空いているか」という、その上映限りの状態だけ。
+ * seats.csv から座席配置を組み立てる。上映ごとの空席・孤立空席判定に使う「配置」のみを扱い、
+ * 座席の個別人気（どの座席がよく売れるか）は扱わない（座席単位の販売頻度には不自然な偏りが
+ * 確認済みのため、個別座席ランキング化はしない）。
  */
 
 const path = require('path');
 const { readCsv } = require('./csv');
 const { DATA_DIR } = require('./config');
 
-/**
- * seats.csv を読み込み、スクリーンIDごとの座席配列にする。
- * @param {string} dataDir
- * @returns {Map<string, Array<{seatId,row,num,block,aisle,wheelchair,rank}>>}
- */
+/** seats.csv → スクリーンIDごとの座席配列。 */
 function loadSeatsByScreen(dataDir = DATA_DIR) {
   const { rows } = readCsv(path.join(dataDir, 'seats.csv'));
   const byScreen = new Map();
@@ -43,13 +34,7 @@ function loadSeatsByScreen(dataDir = DATA_DIR) {
 
 /**
  * 1スクリーン分の座席配置を組み立てる。
- * 「区画」は同じ列（row）の中で座席番号が連番でなくなる箇所（通路の切れ目）で区切る。
- * @param {Array<object>} seatRows loadSeatsByScreen() の1スクリーン分
- * @returns {{
- *   rows: Array<{ row: string, segments: Array<Array<object>> }>,
- *   order: string[],           // 表示用の座席ID順 (行→座席番号)
- *   seatIndex: Map<string, object>,
- * }}
+ * 「区画」は同じ列で座席番号が連番でなくなる箇所（通路の切れ目）で区切る。
  */
 function buildScreenLayout(seatRows) {
   const byRow = new Map();
@@ -87,11 +72,7 @@ function buildScreenLayout(seatRows) {
   return { rows, order, seatIndex };
 }
 
-/**
- * 全スクリーンの座席配置を組み立てる。
- * @param {string} dataDir
- * @returns {Map<string, ReturnType<typeof buildScreenLayout>>}
- */
+/** 全スクリーンの座席配置を組み立てる。 */
 function buildAllScreenLayouts(dataDir = DATA_DIR) {
   const byScreen = loadSeatsByScreen(dataDir);
   const layouts = new Map();

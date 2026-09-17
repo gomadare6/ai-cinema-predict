@@ -1,26 +1,10 @@
 'use strict';
 
 /**
- * 1つの上映の「座席配置 + 販売済み座席ID集合」から、空席の利用しやすさを判定する。
+ * 1上映の座席配置＋販売済み座席ID集合から、空席の利用しやすさを判定する。
  *
- * 孤立空席の定義（データ分析で確認した定義をそのまま実装する）:
- *   同じ区画（通路で区切られたひとまとまり）の中で、両隣を販売済み座席に
- *   挟まれた「1席だけの空席」。区画の端（片側にしか隣席が無い空席）は、
- *   分割せずに使える空席なので孤立空席に含めない。
- *
- * ここで求めるのは「その上映で今どう埋まっているか」であり、
- * 座席そのものの人気・ランキングは求めない (座席単位の統計は別モジュールでも扱わない)。
- */
-
-/**
- * @param {{ rows: Array<{row:string, segments: Array<Array<{seatId:string}>>}> }} layout
- * @param {Set<string>} soldSeatIdSet
- * @returns {{
- *   totalSeats: number, soldCount: number, emptyCount: number,
- *   isolatedCount: number, isolatedRate: number,
- *   occupancyPct: number,
- *   seatStates: Array<{ seatId: string, state: 'sold'|'empty'|'isolated' }>,
- * }}
+ * 孤立空席の定義: 同じ区画（通路で区切られたひとまとまり）内で、両隣を販売済み座席に
+ * 挟まれた「1席だけの空席」。区画の端（片側にしか隣席が無い空席）は含めない。
  */
 function computeSeatUsage(layout, soldSeatIdSet) {
   const seatStates = [];

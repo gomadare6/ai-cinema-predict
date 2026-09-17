@@ -1,14 +1,10 @@
 'use strict';
 
 /**
- * 分析機能 (予測vs実績 / 座席マップ・孤立空席率 / 映画別・スクリーン別プロフィール /
- * 意外な結果 / 映画館データ) 向けの静的 JSON を derived/analytics/ に生成する CLI。
+ * 分析ページ向けの静的 JSON を derived/analytics/ に生成する CLI。
  *   node scripts/build-analytics.js
- *
- * 本番の予測ロジック (src/predictor.js, derived/*_avg.csv, global_avg.json) は
- * 一切変更しない。ここで作るのは表示専用の集計データ。
- * ブラウザ側で ticket_sales.csv (50万行超) を解析しないよう、必要な集計は
- * すべてここ (Node / build 時) で完結させる。
+ * 本番の予測ロジック（src/predictor.js 等）は変更しない。表示専用の集計データを build 時に作り、
+ * ブラウザ側で ticket_sales.csv（50万行超）を解析しないようにする。
  */
 
 const fs = require('fs');
@@ -60,9 +56,7 @@ function main() {
   fs.writeFileSync(path.join(OUT_DIR, 'staff.json'), JSON.stringify(staff), 'utf8');
   console.log(`孤立空席あり上映: ${isolatedSummary.showingsWithIsolatedSeat}/${isolatedSummary.totalConsidered}`);
 
-  // --- 5) 座席マップ (座席の状況 + 孤立空席率) ---
-  // 個別座席の人気ランキングは作らない。「その上映で今どう埋まっているか」だけを持つ。
-  // 実績がある上映 (販売データが存在する上映) のみ対象。未来上映は実績が無いため対象外。
+  // --- 5) 座席マップ (座席の状況 + 孤立空席率)。実績がある上映のみ対象、個別座席ランキングは作らない。 ---
   const seatLayoutMeta = {};
   for (const [screenId, layout] of screenLayouts) {
     seatLayoutMeta[screenId] = {
